@@ -1,0 +1,5 @@
+/local/*
+!/local/README.md
+!/local/.gitkeep
+*.env
+*.key

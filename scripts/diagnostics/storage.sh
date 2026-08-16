@@ -30,7 +30,9 @@ for cmd in pvs vgs lvs; do
 done
 
 printf '\n===== LARGE TOP-LEVEL DIRECTORIES =====\n'
-if command -v du >/dev/null 2>&1; then
+if [ "${ROR_STORAGE_SKIP_DU:-0}" = '1' ]; then
+  echo 'Skipped for bounded collection. Run `ror diagnose storage` for the top-level du scan.'
+elif command -v du >/dev/null 2>&1; then
   du -x -h --max-depth=1 / 2>/dev/null | sort -h | tail -n 20 || true
 fi
 

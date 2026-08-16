@@ -2,6 +2,8 @@
 
 Safe setup helpers for making Room of Requirement usable on a new machine.
 
+Bootstrap is intentionally conservative: **no packages or dotfiles are changed unless explicitly requested**.
+
 ## Unix-like systems
 
 From the repository root:
@@ -10,14 +12,34 @@ From the repository root:
 bash bootstrap/install.sh
 ```
 
-This currently:
+The default bootstrap:
 
 - creates `~/.local/bin` if needed;
-- creates a small executable `ror` wrapper under `~/.local/bin` that invokes the repository's shared Bash implementation;
-- leaves tracked repository file modes and content unchanged, so bootstrap does not dirty the Git working tree;
-- does not overwrite shell profiles or other user configuration.
+- creates a small executable `ror` wrapper under `~/.local/bin`;
+- leaves tracked repository file modes/content unchanged;
+- does not install packages;
+- does not alter dotfiles;
+- runs the read-only `ror doctor` check.
 
-If `~/.local/bin` is not in `PATH`, add it explicitly to your shell profile.
+### Opt-in workstation setup
+
+```bash
+bash bootstrap/install.sh --profile minimal
+bash bootstrap/install.sh --profile linux-admin --dotfiles bash --dotfiles git
+bash bootstrap/install.sh --dotfiles all
+```
+
+Options:
+
+```text
+--profile PROFILE   install one ROR package profile
+--dotfiles GROUP    install a managed dotfile group; repeatable
+--no-doctor         skip the final read-only doctor check
+```
+
+Package and dotfile installation remain explicit mutations even when invoked through bootstrap. Dotfile installation creates a rollback snapshot before touching user files.
+
+If `~/.local/bin` is not in `PATH`, add it explicitly to your shell profile or install the managed Bash dotfile fragment after reviewing it.
 
 ## Windows
 
@@ -27,8 +49,38 @@ From PowerShell:
 .\bootstrap\install.ps1
 ```
 
-The current Windows implementation creates a PowerShell wrapper under `~/.local/bin` and uses an available Bash environment such as Git Bash or WSL for the shared `ror` implementation.
+The Windows implementation creates `~/.local/bin/ror.ps1` and uses an available Bash environment such as Git Bash or WSL for the shared ROR CLI.
 
-## Future platform bootstrap
+Optional setup can be requested explicitly:
 
-Platform-specific dependency installation belongs under this directory, but should remain explicit and safe. Bootstrap must never silently replace existing user configuration.
+```powershell
+.\bootstrap\install.ps1 -PackageProfile minimal
+.\bootstrap\install.ps1 -PackageProfile linux-admin -Dotfiles bash,git
+.\bootstrap\install.ps1 -Dotfiles all
+```
+
+Use `-NoDoctor` to skip the final read-only check.
+
+## Recommended first-machine workflow
+
+```bash
+ror doctor
+ror pkg list
+ror pkg suggest linux-admin
+ror dotfiles status
+ror dotfiles diff all
+```
+
+Only after reviewing the suggestions/diff:
+
+```bash
+ror pkg install linux-admin
+ror dotfiles install all
+```
+
+Rollback remains available with:
+
+```bash
+ror dotfiles backups
+ror dotfiles restore latest
+```

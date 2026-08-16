@@ -2,6 +2,50 @@
 
 Notable changes to Room of Requirement are recorded here. The project uses the changelog to track capability-level changes rather than every individual file edit.
 
+## v0.6.0 - 2026-08-16
+
+### Added
+
+- Phase 5 smarter troubleshooting and curated "Room" behavior.
+- `ror need [topic|list]` as a deterministic relationship layer over repository resources.
+- Curated topic maps for:
+  - SSH/SFTP
+  - TLS/certificates
+  - DNS
+  - networking
+  - systemd/services
+  - storage/filesystems/LVM
+  - Java/JVM/PKIX/keystores
+  - Tomcat
+  - Kubernetes
+  - Ansible
+  - containers/Docker Compose
+  - Git
+- Topic aliases such as `certificate` -> `tls`, `sftp` -> `ssh`, `pkix` -> `java`, and `k8s` -> `kubernetes`.
+- Curated quick actions and related references, diagnostics, runbooks, snippets, templates, and managed configuration where applicable.
+- Conservative `SUMMARY` sections for systemd, SSH, TLS, DNS, storage, Java, and Tomcat diagnostics.
+- Selected high-signal log-pattern detection for SSH KEX/authentication issues and Tomcat/Java conditions including PKIX, `OutOfMemoryError`, bind conflicts, and connection failures.
+- CI smoke coverage for `ror need`, topic aliases, resource relationships, and portable diagnostic summary output.
+
+### Changed
+
+- `ror need` falls back to normal repository search when no curated topic exists.
+- systemd diagnostics now summarize unit load/active state and main-process exit status.
+- SSH diagnostics now validate sshd configuration, detect the effective SSH port, summarize service/listener state, and surface selected negotiation/authentication log patterns.
+- TLS diagnostics now summarize certificate receipt, chain verification, expiry windows, hostname matching when supported by OpenSSL, and handshake command status.
+- DNS diagnostics now summarize resolver configuration, system-resolver success, and common DNS response states.
+- Storage diagnostics now summarize filesystem/inode pressure and deleted-but-open file handles.
+- Java diagnostics now summarize runtime/process availability, requested PID state, Java process identity, and `jcmd` availability.
+- Tomcat diagnostics now summarize service/PID state and selected high-signal recent log patterns.
+- README, architecture documentation, and diagnostic documentation now define the relationship and interpretation models.
+
+### Safety
+
+- Diagnostic summaries are explicitly advisory: warnings identify evidence worth investigating and do not claim a proven root cause.
+- Raw diagnostic evidence remains visible above each summary so interpretations stay inspectable.
+- Tomcat diagnostics no longer request the systemd `Environment` property because unit environments can contain credentials or tokens.
+- `ror need` is deterministic and reviewable in `lib/resources.sh`; it does not use fuzzy diagnosis or hidden inference.
+
 ## v0.5.1 - 2026-08-16
 
 ### Fixed

@@ -17,6 +17,8 @@ export ROR_HOME
 . "$ROR_HOME/lib/packages.sh"
 # shellcheck source=../lib/dotfiles.sh
 . "$ROR_HOME/lib/dotfiles.sh"
+# shellcheck source=../lib/resources.sh
+. "$ROR_HOME/lib/resources.sh"
 
 usage() {
   cat <<'EOF'
@@ -26,6 +28,7 @@ Discovery:
   ror doctor [--install-suggestions]
   ror info
   ror path [cheat-sheets|snippets|scripts|templates|docs|local]
+  ror need [topic|list]
   ror find [--type TYPE] <term>
   ror search [--type TYPE] <term>
   ror cheat <term>
@@ -52,6 +55,8 @@ Reuse/maintenance:
   ror update
 
 Examples:
+  ror need ssh
+  ror need certificate
   ror doctor --install-suggestions
   ror collect baseline
   ror find --type runbook ssh
@@ -59,7 +64,6 @@ Examples:
   ror pkg install minimal
   ror dotfiles diff all
   ror dotfiles install bash
-  ror dotfiles install all
   ror dotfiles restore latest
 EOF
 }
@@ -304,6 +308,17 @@ cmd_find() {
   esac
 }
 
+cmd_need() {
+  local topic="${1:-}"
+  if ror_need_print "$topic"; then
+    return 0
+  fi
+
+  printf 'No curated need map exists yet for: %s\n' "$topic" >&2
+  printf 'Falling back to repository search.\n\n' >&2
+  cmd_find "$topic"
+}
+
 cmd_cheat() {
   local term="${1:-}"
   [ -n "$term" ] || ror_die 'cheat requires a search term'
@@ -522,6 +537,7 @@ case "${1:-help}" in
   doctor) shift; cmd_doctor "$@" ;;
   info) cmd_info ;;
   path) shift; cmd_path "$@" ;;
+  need) shift; cmd_need "$@" ;;
   find|search) shift; cmd_find "$@" ;;
   cheat|cheatsheet) shift; cmd_cheat "$@" ;;
   diagnose|diag) shift; cmd_diagnose "$@" ;;

@@ -1,2 +1,8 @@
+# Optional Git-for-Windows overlay.
+#
+# The shared managed Git defaults live in dotfiles/git/gitconfig and are what
+# `ror dotfiles install git` uses. Keep Windows-only policy here for deliberate
+# manual inclusion when a host needs it.
+
 [core]
-	autocrlf = false
+    autocrlf = false

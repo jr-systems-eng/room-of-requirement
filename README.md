@@ -8,9 +8,11 @@ A portable engineering toolbox for unfamiliar systems: quick references, diagnos
 
 | Need | Go to |
 |---|---|
+| Quickly assess an unfamiliar host | `ror doctor` |
+| Capture a general-purpose handoff bundle | `ror collect baseline` |
 | Remember a command or concept | [`cheat-sheets/`](cheat-sheets/README.md) |
 | Copy/paste a reusable fragment | [`snippets/`](snippets/README.md) |
-| Collect troubleshooting evidence | [`scripts/diagnostics/`](scripts/diagnostics/README.md) |
+| Collect targeted troubleshooting evidence | [`scripts/diagnostics/`](scripts/diagnostics/README.md) |
 | Run a complete utility | [`scripts/`](scripts/) |
 | Follow a safe troubleshooting procedure | [`docs/runbooks/`](docs/runbooks/README.md) |
 | Create something from a known-good starting point | [`templates/`](templates/README.md) |
@@ -22,11 +24,21 @@ A portable engineering toolbox for unfamiliar systems: quick references, diagnos
 
 `bin/ror` is the front door to the repository.
 
-### Discover
+### First look at a machine
 
 ```bash
 ror doctor
 ror doctor --install-suggestions
+ror collect baseline
+```
+
+`ror doctor` summarizes platform/tooling information and highlights common host-health signals such as root-filesystem pressure, Linux memory pressure, failed systemd units, time synchronization, firewall/MAC visibility, proxy presence, and reboot status.
+
+`ror collect baseline` creates a timestamped, read-only intake report combining system, network, storage, resolver, security, time-sync, service, journal, kernel-package, and reboot context. It avoids dumping process environments and reports only the presence of proxy variables rather than their values.
+
+### Discover
+
+```bash
 ror info
 ror path cheat-sheets
 ror find ssh
@@ -38,6 +50,7 @@ ror cheat subnetting
 ### Diagnose and collect
 
 ```bash
+ror diagnose baseline
 ror diagnose system
 ror diagnose network
 ror diagnose systemd sshd
@@ -52,6 +65,7 @@ ror diagnose tomcat tomcat
 Save the same diagnostic output as a timestamped handoff file:
 
 ```bash
+ror collect baseline
 ror collect system
 ror collect systemd sshd
 ror collect tls example.com:443
@@ -79,7 +93,7 @@ ror pkg suggest networking
 ror pkg install troubleshooting
 ```
 
-`pkg suggest` is read-only. `pkg install` is an explicit mutating action and translates common tool names across supported package managers where required.
+`pkg suggest` is read-only. `pkg install` is an explicit mutating action and translates common tool names across supported package managers where required. Package installation works from a root shell directly or through `sudo` when needed.
 
 ### Repository maintenance
 
@@ -113,6 +127,7 @@ The current Windows wrapper uses Bash (for example Git Bash or WSL) to run the s
 
 | Target | Purpose |
 |---|---|
+| `baseline` | General-purpose read-only host intake/handoff bundle |
 | `system` | OS, kernel, uptime, CPU, memory, failed services, core state |
 | `network` | addresses, routes, DNS config, listeners, basic network state |
 | `systemd` | service status, unit definition, process and recent journal |
@@ -123,6 +138,26 @@ The current Windows wrapper uses Bash (for example Git Bash or WSL) to run the s
 | `java` | Java runtime/process/JVM metadata without dumping environments |
 | `tomcat` | service/process/listener/log context for Tomcat |
 
+## Trust and validation
+
+Changes on `main` are guarded by GitHub Actions checks for:
+
+- Bash syntax and error-level ShellCheck findings
+- YAML and JSON validation
+- local Markdown-link validation
+- PowerShell parsing
+- ROR CLI smoke tests on Linux and Windows runners
+- full-history secret scanning
+
+The local smoke suite can also be run manually:
+
+```bash
+bash tests/smoke/ror-smoke.sh
+python3 tests/validate_markdown_links.py
+```
+
+See [`tests/`](tests/README.md) for the validation contract.
+
 ## Design principles
 
 - **Portable:** resources should not depend on the machine where they were authored.
@@ -131,6 +166,7 @@ The current Windows wrapper uses Bash (for example Git Bash or WSL) to run the s
 - **Local stays local:** secrets and machine-specific state belong under `local/`, never Git.
 - **Discoverable:** `ror find` should locate useful material across resource types.
 - **Reusable:** capture procedures and patterns once rather than reconstructing them during every incident.
+- **Trustworthy:** automated validation should catch portability, syntax, link, and secret-leak regressions before they become normal tooling.
 
 See [Philosophy](docs/philosophy.md) and [Architecture](docs/architecture.md) for the repository contracts and design model.
 
@@ -141,6 +177,7 @@ See [Philosophy](docs/philosophy.md) and [Architecture](docs/architecture.md) fo
 - [Diagnostics](scripts/diagnostics/README.md)
 - [Runbooks](docs/runbooks/README.md)
 - [Templates](templates/README.md)
+- [Tests](tests/README.md)
 - [Architecture](docs/architecture.md)
 - [Philosophy](docs/philosophy.md)
 - [Changelog](CHANGELOG.md)

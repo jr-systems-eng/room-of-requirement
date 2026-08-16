@@ -1,0 +1,104 @@
+name: Validate
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  static-validation:
+    name: Static validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Install validators
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck yamllint
+
+      - name: Bash syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -d '' files < <(find bin lib bootstrap scripts tests -type f -name '*.sh' -print0)
+          printf 'Checking %s shell files\n' "${#files[@]}"
+          for file in "${files[@]}"; do
+            bash -n "$file"
+          done
+
+      - name: ShellCheck errors
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -d '' files < <(find bin lib bootstrap scripts tests -type f -name '*.sh' -print0)
+          shellcheck -x -S error "${files[@]}"
+
+      - name: YAML syntax and style
+        run: yamllint .
+
+      - name: JSON syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r -d '' file; do
+            python3 -m json.tool "$file" >/dev/null
+          done < <(find . -type f -name '*.json' -not -path './.git/*' -print0)
+
+      - name: Local Markdown links
+        run: python3 tests/validate_markdown_links.py
+
+      - name: PowerShell syntax
+        shell: pwsh
+        run: |
+          $failed = $false
+          Get-ChildItem -Path . -Recurse -Filter *.ps1 | ForEach-Object {
+            $tokens = $null
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile(
+              $_.FullName,
+              [ref]$tokens,
+              [ref]$errors
+            ) | Out-Null
+            if ($errors.Count -gt 0) {
+              Write-Error "PowerShell parse errors in $($_.FullName)"
+              $errors | ForEach-Object { Write-Error $_.Message }
+              $failed = $true
+            }
+          }
+          if ($failed) { exit 1 }
+
+  smoke:
+    name: Smoke (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Run CLI smoke tests
+        shell: bash
+        run: bash tests/smoke/ror-smoke.sh
+
+  secret-scan:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out full history
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Gitleaks
+        uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

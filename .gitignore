@@ -12,6 +12,9 @@
 *.kdb
 *.pem.key
 
+# ROR-generated collection output
+ror-collect-*.txt
+
 # Common generated/local state
 *.log
 *.swp

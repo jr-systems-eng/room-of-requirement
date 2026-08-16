@@ -1,1 +1,9 @@
-# ~/.bash_profile
+# Room of Requirement - optional login-shell example
+#
+# `ror dotfiles install bash` does not replace ~/.bash_profile. Most systems
+# already have a distro/user login profile that eventually loads ~/.bashrc.
+# If a host does not, this is a safe pattern to copy or adapt:
+
+if [ -r "$HOME/.bashrc" ]; then
+  . "$HOME/.bashrc"
+fi

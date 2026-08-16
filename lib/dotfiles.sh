@@ -1,13 +1,10 @@
 #!/usr/bin/env bash
 
+# Managed fragments intentionally use one predictable location across Unix,
+# WSL, Git Bash, and PowerShell. Machine-specific overrides live below
+# ~/.config/ror/local/ and are never written by ROR.
 ror_dotfiles_config_home() {
-  if [ -n "${ROR_CONFIG_HOME:-}" ]; then
-    printf '%s\n' "$ROR_CONFIG_HOME"
-  elif [ -n "${XDG_CONFIG_HOME:-}" ]; then
-    printf '%s/ror\n' "$XDG_CONFIG_HOME"
-  else
-    printf '%s/.config/ror\n' "$HOME"
-  fi
+  printf '%s/.config/ror\n' "$HOME"
 }
 
 ror_dotfiles_state_home() {
@@ -121,10 +118,10 @@ source-file "$config_home/tmux.conf"
 EOF
       ;;
     powershell)
-      cat <<EOF
+      cat <<'EOF'
 # >>> ROR managed powershell >>>
-\$RorManagedProfile = '$config_home/powershell_profile.ps1'
-if (Test-Path \$RorManagedProfile) { . \$RorManagedProfile }
+$RorManagedProfile = Join-Path $HOME '.config\ror\powershell_profile.ps1'
+if (Test-Path $RorManagedProfile) { . $RorManagedProfile }
 # <<< ROR managed powershell <<<
 EOF
       ;;
@@ -165,12 +162,10 @@ ror_dotfiles_replace_block() {
     : > "$tmp"
   fi
 
-  # Ensure the managed block starts on its own line without rewriting the
-  # unmanaged content that came before it.
-  if [ -s "$tmp" ] && [ "$(tail -c 1 "$tmp" 2>/dev/null | wc -l | tr -d ' ')" = '0' ]; then
+  if [ -s "$tmp" ]; then
     printf '\n' >> "$tmp"
   fi
-  printf '\n%s\n' "$content" >> "$tmp"
+  printf '%s\n' "$content" >> "$tmp"
   mv "$tmp" "$file"
 }
 
@@ -212,29 +207,29 @@ ror_dotfiles_new_backup() {
 }
 
 ror_dotfiles_copy_managed() {
-  local backup_dir="$1" group="$2" config_home source_spec source rel
+  local backup_dir="$1" group="$2" config_home source rel
   config_home="$(ror_dotfiles_config_home)"
   mkdir -p "$config_home"
 
   while IFS='|' read -r source rel; do
     [ -n "$source" ] || continue
-    source="$ROR_HOME/$source"
-    [ -f "$source" ] || { printf 'Missing dotfile source: %s\n' "$source" >&2; return 1; }
+    [ -f "$ROR_HOME/$source" ] || { printf 'Missing dotfile source: %s\n' "$source" >&2; return 1; }
     ror_dotfiles_backup_once "$backup_dir" "$config_home/$rel"
-    cp "$source" "$config_home/$rel"
+    cp "$ROR_HOME/$source" "$config_home/$rel"
   done < <(ror_dotfiles_source_files "$group")
 }
 
 ror_dotfiles_install_group() {
-  local backup_dir="$1" group="$2" config_home target begin end block input_target input_begin input_end input_block
+  local backup_dir="$1" group="$2" config_home target begin end block input_target input_block
   config_home="$(ror_dotfiles_config_home)"
+
+  target="$(ror_dotfiles_integration_target "$group")" || {
+    printf 'Unsupported dotfile group on this platform: %s\n' "$group" >&2
+    return 2
+  }
 
   ror_dotfiles_copy_managed "$backup_dir" "$group" || return 1
 
-  target="$(ror_dotfiles_integration_target "$group")" || {
-    printf 'Skipping unsupported dotfile group on this platform: %s\n' "$group" >&2
-    return 2
-  }
   begin="$(ror_dotfiles_marker_begin "$group")"
   end="$(ror_dotfiles_marker_end "$group")"
   block="$(ror_dotfiles_block "$group" "$config_home")"
@@ -243,11 +238,9 @@ ror_dotfiles_install_group() {
 
   if [ "$group" = 'bash' ]; then
     input_target="$(ror_dotfiles_inputrc_target)"
-    input_begin='# >>> ROR managed inputrc >>>'
-    input_end='# <<< ROR managed inputrc <<<'
     input_block="$(ror_dotfiles_inputrc_block "$config_home")"
     ror_dotfiles_backup_once "$backup_dir" "$input_target"
-    ror_dotfiles_replace_block "$input_target" "$input_begin" "$input_end" "$input_block"
+    ror_dotfiles_replace_block "$input_target" '# >>> ROR managed inputrc >>>' '# <<< ROR managed inputrc <<<' "$input_block"
   fi
 }
 
@@ -270,10 +263,8 @@ ror_dotfiles_group_status() {
     integration='unlinked'
   fi
 
-  if [ "$group" = 'bash' ]; then
-    if ! ror_dotfiles_has_block "$(ror_dotfiles_inputrc_target)" '# >>> ROR managed inputrc >>>'; then
-      integration='partial'
-    fi
+  if [ "$group" = 'bash' ] && ! ror_dotfiles_has_block "$(ror_dotfiles_inputrc_target)" '# >>> ROR managed inputrc >>>'; then
+    integration='partial'
   fi
 
   printf '%-12s managed=%-8s integration=%s\n' "$group" "$state" "$integration"

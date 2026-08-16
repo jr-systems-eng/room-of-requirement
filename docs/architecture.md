@@ -25,6 +25,7 @@ Room of Requirement is organized by **how a resource is used**, not by the machi
 - Need to **run** something -> `scripts/`
 - Need to **perform a procedure safely** -> `docs/runbooks/`
 - Need to **create a new artifact** -> `templates/`
+- Need to **see everything related to a problem** -> `ror need <topic>`
 
 ## Safety model
 
@@ -34,7 +35,9 @@ Diagnostics and discovery are read-only by default. Mutating operations are expl
 
 `ror collect baseline` is the broadest collector. It combines existing system/network/storage/DNS collectors with security-mode visibility, firewall state, time synchronization, failed services, recent warning-or-higher journal output, kernel-package information, and reboot state. Proxy variables are reported only as present/not-present; their values are not emitted.
 
-`ror pkg install` and `ror dotfiles install` are intentionally explicit mutations. `ror doctor --install-suggestions`, `ror pkg suggest`, `ror dotfiles status`, and `ror dotfiles diff` remain read-only.
+Tomcat diagnostics explicitly avoid `systemctl show ... Environment` because systemd unit environments can contain credentials or tokens.
+
+`ror pkg install` and `ror dotfiles install` are intentionally explicit mutations. `ror doctor --install-suggestions`, `ror pkg suggest`, `ror dotfiles status`, `ror dotfiles diff`, `ror need`, `ror diagnose`, and `ror collect` remain read-only with respect to host configuration.
 
 ## Trust model
 
@@ -42,7 +45,7 @@ The default branch is expected to remain usable as a portable toolbox. GitHub Ac
 
 1. **Parse/static checks** — Bash syntax, error-level ShellCheck, YAML, JSON, and PowerShell parsing.
 2. **Repository integrity** — local Markdown links must resolve.
-3. **Behavioral smoke tests** — core `ror` discovery, reference, diagnostics, collection, package-profile, and dotfile lifecycle operations are exercised on Linux and Windows runners.
+3. **Behavioral smoke tests** — core `ror` discovery, curated resource relationships, diagnostics, collection, package-profile, and dotfile lifecycle operations are exercised on Linux and Windows runners.
 4. **Secret scanning** — full Git history is scanned for likely committed secrets.
 
 Tests live under `tests/` so most validation can also be run locally rather than existing only inside CI.
@@ -69,6 +72,38 @@ Current health signals include:
 
 Doctor findings are advisory. A warning identifies something worth reviewing; it is not automatically a diagnosis.
 
+## Diagnostic interpretation model
+
+Targeted diagnostics may add a final `SUMMARY` section when the collector has enough direct evidence to make simple observations.
+
+Interpretation follows these rules:
+
+1. **Raw evidence first.** The underlying command output remains visible above the summary.
+2. **Observed facts, not invented causes.** Examples include "service inactive," "port not listening," "verify code non-zero," or "filesystem >=90%."
+3. **High-signal pattern detection only.** Log matching is reserved for recognizable conditions such as SSH KEX mismatches, Java PKIX failures, Tomcat bind conflicts, or `OutOfMemoryError`.
+4. **Warnings are investigative.** `WARN` means the evidence deserves attention; it does not mean ROR has proven the root cause.
+5. **Next steps stay inspectable.** Suggested commands point back to collectors, runbooks, or ordinary OS tools.
+
+Current interpreted targets include systemd, SSH, TLS, DNS, storage, Java, and Tomcat.
+
+## Resource relationship model
+
+`ror find` remains literal repository search. `ror need` adds a curated relationship layer for common engineering topics.
+
+The mapping lives in `lib/resources.sh` and connects aliases, recommended commands, and known resources. For example:
+
+```text
+certificate -> tls
+sftp        -> ssh
+pkix        -> java
+filesystem  -> storage
+k8s         -> kubernetes
+```
+
+A curated topic can link reference material, diagnostics, runbooks, snippets, templates, and managed configuration without moving or duplicating those resources.
+
+The map is intentionally deterministic rather than fuzzy. This keeps behavior reviewable in Git and prevents a discovery command from becoming an opaque expert system. Unknown topics fall back to normal `ror find` search.
+
 ## Portability model
 
 The repository exposes common user-facing operations while allowing platform-specific implementations underneath. OS support should be detected centrally through `lib/os.sh` rather than reimplemented independently in each script.
@@ -76,6 +111,8 @@ The repository exposes common user-facing operations while allowing platform-spe
 Package/tool naming differences belong in `lib/packages.sh`. For example, the user-facing tool `dig` maps to `bind-utils` on DNF-family systems and `dnsutils` on APT-family systems.
 
 Dotfile lifecycle behavior belongs in `lib/dotfiles.sh` rather than being reimplemented in bootstrap or individual shell profiles.
+
+Resource relationships belong in `lib/resources.sh` rather than being hard-coded across multiple commands or documentation files.
 
 ## Package profile model
 
@@ -140,6 +177,7 @@ Git identity, credentials, SSH private keys, host-specific SSH config, and Bash 
 ror doctor [--install-suggestions]
 ror info
 ror path [resource]
+ror need [topic|list]
 ror find [--type TYPE] <term>
 ror search [--type TYPE] <term>
 ror cheat <term>
@@ -156,7 +194,7 @@ ror dotfiles restore [latest|backup-id]
 ror update
 ```
 
-Aliases are intentionally provided for common human variation (`find`/`search`, `cheat`/`cheatsheet`, `diagnose`/`diag`). A personal toolbox should be forgiving about how its owner remembers the command.
+Aliases are intentionally provided for common human variation (`find`/`search`, `cheat`/`cheatsheet`, `diagnose`/`diag`). `ror need` also normalizes topic aliases such as `sftp`/`ssh` and `certificate`/`tls`. A personal toolbox should be forgiving about how its owner remembers the command.
 
 ## Collection model
 

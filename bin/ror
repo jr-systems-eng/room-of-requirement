@@ -395,7 +395,7 @@ cmd_pkg_list() {
   local profile
   printf 'Available package profiles:\n'
   while IFS= read -r profile; do
-    printf '  %-16s %s' "$profile" "$(ror_profile_description "$profile")"
+    printf '  %-16s %s\n' "$profile" "$(ror_profile_description "$profile")"
   done < <(ror_profile_names)
 }
 
@@ -411,7 +411,7 @@ cmd_pkg() {
       external="$(ror_missing_external_tools "$profile")"
       printf 'Profile/request: %s\n' "$profile"
       printf 'Package manager: %s\n' "$manager"
-      printf 'Purpose: %s' "$(ror_profile_description "$profile")"
+      printf 'Purpose: %s\n' "$(ror_profile_description "$profile")"
 
       if [ -n "$missing" ]; then
         printf '\nMissing package-managed items:\n'

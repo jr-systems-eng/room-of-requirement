@@ -15,6 +15,8 @@ export ROR_HOME
 . "$ROR_HOME/lib/logging.sh"
 # shellcheck source=../lib/packages.sh
 . "$ROR_HOME/lib/packages.sh"
+# shellcheck source=../lib/dotfiles.sh
+. "$ROR_HOME/lib/dotfiles.sh"
 
 usage() {
   cat <<'EOF'
@@ -35,25 +37,30 @@ Troubleshooting:
   ror collect <target> [args...]
   ror run <script> [args...]
 
-Reuse/bootstrap:
-  ror new <template> <destination>
+Portable environment:
   ror pkg list
-  ror pkg suggest [troubleshooting|networking|development]
-  ror pkg install <bundle-or-package>
+  ror pkg suggest <profile-or-package>
+  ror pkg install <profile-or-package>
   ror dotfiles status
+  ror dotfiles diff [group|all]
+  ror dotfiles install <group|all>
+  ror dotfiles backups
+  ror dotfiles restore [latest|backup-id]
+
+Reuse/maintenance:
+  ror new <template> <destination>
   ror update
 
 Examples:
   ror doctor --install-suggestions
-  ror find ssh
-  ror find --type runbook ssh
-  ror cheat subnetting
-  ror diagnose systemd sshd
-  ror diagnose tls example.com:443
   ror collect baseline
-  ror collect java 12345
-  ror pkg suggest troubleshooting
-  ror new systemd/service.service ./myapp.service
+  ror find --type runbook ssh
+  ror pkg suggest linux-admin
+  ror pkg install minimal
+  ror dotfiles diff all
+  ror dotfiles install bash
+  ror dotfiles install all
+  ror dotfiles restore latest
 EOF
 }
 
@@ -65,6 +72,8 @@ cmd_info() {
   printf 'ARCH=%s\n' "$ROR_ARCH"
   printf 'WSL=%s\n' "$ROR_WSL"
   printf 'PACKAGE_MANAGER=%s\n' "$(ror_package_manager)"
+  printf 'DOTFILES_CONFIG_HOME=%s\n' "$(ror_dotfiles_config_home)"
+  printf 'DOTFILES_STATE_HOME=%s\n' "$(ror_dotfiles_state_home)"
 }
 
 cmd_path() {
@@ -225,9 +234,13 @@ cmd_doctor() {
 
   printf '\nTools\n'
   ror_hr
-  for tool in git curl wget jq dig nc openssl ssh python3 ansible docker podman kubectl govc gcloud lsof strace tcpdump traceroute tmux; do
+  for tool in git curl wget jq dig nc openssl ssh python3 ansible docker podman kubectl helm govc gcloud lsof strace tcpdump traceroute tmux; do
     check_tool "$tool"
   done
+
+  printf '\nDotfiles\n'
+  ror_hr
+  ror_dotfiles_status
 
   printf '\nRepository\n'
   ror_hr
@@ -294,14 +307,12 @@ cmd_find() {
 cmd_cheat() {
   local term="${1:-}"
   [ -n "$term" ] || ror_die 'cheat requires a search term'
-  local matches
+  local matches count
   matches="$(find "$ROR_HOME/cheat-sheets" -type f -name '*.md' 2>/dev/null | grep -i -- "$term" || true)"
   if [ -z "$matches" ]; then
     matches="$(grep -RIl -i --include='*.md' -- "$term" "$ROR_HOME/cheat-sheets" 2>/dev/null || true)"
   fi
   [ -n "$matches" ] || ror_die "no cheat sheet matched: $term"
-
-  local count
   count="$(printf '%s\n' "$matches" | sed '/^$/d' | wc -l | tr -d ' ')"
   if [ "$count" -eq 1 ]; then
     ${PAGER:-cat} "$matches"
@@ -369,8 +380,7 @@ cmd_collect() {
 }
 
 cmd_new() {
-  local template="${1:-}"
-  local destination="${2:-}"
+  local template="${1:-}" destination="${2:-}"
   [ -n "$template" ] && [ -n "$destination" ] || ror_die 'new requires <template> <destination>'
   template="${template#templates/}"
   local source="$ROR_HOME/templates/$template"
@@ -381,66 +391,123 @@ cmd_new() {
   printf 'Created %s from %s\n' "$destination" "templates/$template"
 }
 
-run_admin() {
-  if [ "$(id -u 2>/dev/null || printf 1)" -eq 0 ]; then
-    "$@"
-  elif ror_have sudo; then
-    sudo "$@"
-  else
-    ror_die 'administrative privileges are required, but sudo is unavailable'
-  fi
+cmd_pkg_list() {
+  local profile
+  printf 'Available package profiles:\n'
+  while IFS= read -r profile; do
+    printf '  %-16s %s' "$profile" "$(ror_profile_description "$profile")"
+  done < <(ror_profile_names)
 }
 
 cmd_pkg() {
-  local action="${1:-list}" bundle="${2:-troubleshooting}" manager missing
+  local action="${1:-list}" profile="${2:-troubleshooting}" manager missing external
   case "$action" in
     list)
-      printf 'Available bundles:\n  troubleshooting\n  networking\n  development\n'
+      cmd_pkg_list
       ;;
     suggest)
       manager="$(ror_package_manager)"
-      missing="$(ror_missing_bundle_packages "$bundle")"
-      if [ -z "$missing" ]; then
-        printf 'All tools in bundle "%s" are already available.\n' "$bundle"
-        return 0
-      fi
+      missing="$(ror_missing_profile_packages "$profile")"
+      external="$(ror_missing_external_tools "$profile")"
+      printf 'Profile/request: %s\n' "$profile"
       printf 'Package manager: %s\n' "$manager"
-      printf 'Missing packages:\n'
-      printf '%s\n' "$missing" | sed 's/^/  /'
-      # Package names generated internally contain no whitespace.
-      # shellcheck disable=SC2086
-      ror_install_command "$manager" $missing
+      printf 'Purpose: %s' "$(ror_profile_description "$profile")"
+
+      if [ -n "$missing" ]; then
+        printf '\nMissing package-managed items:\n'
+        printf '%s\n' "$missing" | sed 's/^/  /'
+        if [ "$manager" != 'unknown' ]; then
+          # Package names are generated internally and contain no whitespace.
+          # shellcheck disable=SC2086
+          ror_install_command "$manager" $missing
+        fi
+      else
+        printf '\nPackage-managed items: satisfied\n'
+      fi
+
+      if [ -n "$external" ]; then
+        printf '\nExternal/vendor-specific tools still missing (not auto-installed):\n'
+        printf '%s\n' "$external" | sed 's/^/  /'
+      fi
       ;;
     install)
       manager="$(ror_package_manager)"
       [ "$manager" != 'unknown' ] || ror_die 'no supported package manager detected'
-      missing="$(ror_missing_bundle_packages "$bundle")"
-      [ -n "$missing" ] || { printf 'Nothing to install for %s.\n' "$bundle"; return 0; }
-      printf 'Installing for %s using %s:\n%s\n' "$bundle" "$manager" "$missing"
-      # Values come from the internal package mapping, not eval.
-      # shellcheck disable=SC2086
-      case "$manager" in
-        dnf) run_admin dnf install -y $missing ;;
-        apt) run_admin apt-get update; run_admin apt-get install -y $missing ;;
-        zypper) run_admin zypper install -y $missing ;;
-        pacman) run_admin pacman -S --needed $missing ;;
-        brew) brew install $missing ;;
-        winget) winget install $missing ;;
-        *) ror_die "unsupported package manager: $manager" ;;
-      esac
+      missing="$(ror_missing_profile_packages "$profile")"
+      if [ -n "$missing" ]; then
+        printf 'Installing package-managed items for %s using %s:\n%s\n' "$profile" "$manager" "$missing"
+        # Package names are generated internally and contain no whitespace.
+        # shellcheck disable=SC2086
+        ror_install_packages "$manager" $missing || ror_die 'package installation failed'
+      else
+        printf 'Package-managed items already satisfied for %s.\n' "$profile"
+      fi
+
+      external="$(ror_missing_external_tools "$profile")"
+      if [ -n "$external" ]; then
+        printf '\nNot automatically installed because setup is vendor/platform-specific:\n'
+        printf '%s\n' "$external" | sed 's/^/  /'
+      fi
       ;;
-    *) ror_die 'pkg usage: ror pkg list|suggest|install [bundle-or-package]' ;;
+    *) ror_die 'pkg usage: ror pkg list|suggest|install [profile-or-package]' ;;
   esac
 }
 
+dotfile_group_valid() {
+  ror_dotfiles_source_files "$1" >/dev/null 2>&1
+}
+
+dotfile_selected_groups() {
+  local requested="${1:-all}"
+  if [ "$requested" = 'all' ]; then
+    ror_dotfiles_groups
+  else
+    dotfile_group_valid "$requested" || return 1
+    printf '%s\n' "$requested"
+  fi
+}
+
 cmd_dotfiles() {
-  case "${1:-status}" in
+  local action="${1:-status}" requested="${2:-all}" group backup_dir failed=0
+  case "$action" in
     status)
-      printf 'Portable dotfiles available:\n'
-      find "$ROR_HOME/dotfiles" -type f 2>/dev/null | sed "s#^$ROR_HOME/dotfiles/#  #" | sort
-      printf '\nInstallation is intentionally not automatic yet; use these as reviewed source material.\n'
+      ror_dotfiles_status
       ;;
-    *) ror_die 'dotfiles currently supports: status' ;;
+    diff)
+      while IFS= read -r group; do
+        ror_dotfiles_diff_group "$group"
+        printf '\n'
+      done < <(dotfile_selected_groups "$requested") || ror_die "unknown dotfile group: $requested"
+      ;;
+    install)
+      [ -n "${2:-}" ] || ror_die 'dotfiles install requires <group|all>'
+      dotfile_selected_groups "$requested" >/dev/null || ror_die "unknown dotfile group: $requested"
+      backup_dir="$(ror_dotfiles_new_backup)"
+      printf 'groups=%s\n' "$requested" >> "$backup_dir/meta"
+      printf 'Backup: %s\n' "$(basename "$backup_dir")"
+
+      while IFS= read -r group; do
+        printf 'Installing %s dotfiles...\n' "$group"
+        if ror_dotfiles_install_group "$backup_dir" "$group"; then
+          printf '  installed\n'
+        else
+          printf '  failed or unsupported\n' >&2
+          failed=1
+        fi
+      done < <(dotfile_selected_groups "$requested")
+
+      printf '\nUse `ror dotfiles restore %s` to restore the exact pre-install state.\n' "$(basename "$backup_dir")"
+      [ "$failed" -eq 0 ] || return 1
+      ;;
+    backups)
+      ror_dotfiles_list_backups
+      ;;
+    restore)
+      ror_dotfiles_restore "${2:-latest}"
+      ;;
+    *)
+      ror_die 'dotfiles usage: ror dotfiles status|diff [group|all]|install <group|all>|backups|restore [latest|backup-id]'
+      ;;
   esac
 }
 

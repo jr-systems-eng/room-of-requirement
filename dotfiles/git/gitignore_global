@@ -1,1 +1,8 @@
+# Room of Requirement - global Git ignores
 *.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+.vscode/*.log
+.idea/workspace.xml

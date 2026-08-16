@@ -2,6 +2,54 @@
 
 Notable changes to Room of Requirement are recorded here. The project uses the changelog to track capability-level changes rather than every individual file edit.
 
+## v0.5.0 - 2026-08-16
+
+### Added
+
+- Phase 4 portable workstation/bootstrap layer.
+- Expanded package profiles:
+  - `minimal`
+  - `troubleshooting`
+  - `networking`
+  - `linux-admin`
+  - `development`
+  - `ansible`
+  - `containers`
+  - `kubernetes`
+  - `cloud`
+- Package-profile descriptions and separation between package-manager-installable dependencies and external/vendor-specific tools that ROR reports but does not automatically install.
+- Safe managed-dotfile lifecycle:
+  - `ror dotfiles status`
+  - `ror dotfiles diff [group|all]`
+  - `ror dotfiles install <group|all>`
+  - `ror dotfiles backups`
+  - `ror dotfiles restore [latest|backup-id]`
+- Managed Bash/Readline, Git, tmux, and PowerShell fragments under `~/.config/ror/`.
+- Timestamped dotfile rollback snapshots under the user state directory before any dotfile install.
+- Machine-specific Bash and PowerShell override paths under `~/.config/ror/local/`.
+- Dotfile lifecycle documentation and portable workstation setup guide.
+- Explicit Unix bootstrap options for package profiles and repeatable dotfile groups.
+- Explicit Windows bootstrap parameters for package profiles and dotfile groups.
+- Isolated dotfile install/restore smoke tests that use a disposable HOME on Linux and Windows CI runners.
+
+### Changed
+
+- Dotfile management now uses small marked include/source blocks instead of replacing whole host configuration files.
+- Git managed configuration no longer contains placeholder identity; user name/email and credentials remain host-owned.
+- Bash/tmux/Readline defaults were populated with conservative portable settings instead of placeholders.
+- `ror doctor` now includes managed-dotfile state in its environment summary.
+- `ror info` now reports dotfile config/state locations.
+- Plain bootstrap remains non-destructive: it installs the ROR wrapper and runs the read-only doctor, while package/dotfile changes require explicit options.
+- README and architecture documentation now describe package profiles, reversible dotfile management, and the intended new-machine workflow.
+- CI smoke coverage now validates Phase 4 package-profile discovery and dotfile install/restore behavior.
+
+### Safety
+
+- Every file touched by `ror dotfiles install` is backed up once per installation transaction.
+- `ror dotfiles restore` restores pre-existing files exactly and removes managed files that did not exist before the matching install.
+- Git identity, credentials, SSH private keys/config, Bash login-profile replacement, and Windows-specific line-ending policy remain outside automatic dotfile management.
+- Kubernetes/cloud/vendor CLIs such as `kubectl`, `helm`, `gcloud`, `govc`, and Docker are not silently installed through guessed distro-specific methods.
+
 ## v0.4.0 - 2026-08-16
 
 ### Added

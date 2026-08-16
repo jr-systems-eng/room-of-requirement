@@ -35,6 +35,8 @@ Notable changes to Room of Requirement are recorded here. The project uses the c
 - Architecture documentation now defines collection behavior, package abstraction, aliases, safety constraints, and resource decision rules.
 - `ror find` now groups results by resource type instead of returning an undifferentiated path list.
 - Diagnostic collection deliberately excludes likely-secret process environment blocks.
+- Package installation now works both from privileged root sessions and from non-root sessions using `sudo` when available.
+- Generated `ror-collect-*.txt` diagnostic handoff files are ignored by Git so collecting from the repository directory does not dirty the worktree.
 
 ## v0.2.0 - 2026-08-16
 

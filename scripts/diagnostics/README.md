@@ -6,6 +6,7 @@ Use them directly with `ror run`, through the friendlier `ror diagnose` aliases,
 
 | Target | Script | Example |
 |---|---|---|
+| Baseline intake | `baseline.sh` | `ror collect baseline` |
 | System | `system-info.sh` | `ror diagnose system` |
 | Network | `network-info.sh` | `ror diagnose network` |
 | systemd service | `systemd-service.sh` | `ror diagnose systemd sshd` |
@@ -16,9 +17,16 @@ Use them directly with `ror run`, through the friendlier `ror diagnose` aliases,
 | Java process | `java-process.sh` | `ror diagnose java 12345` |
 | Tomcat | `tomcat.sh` | `ror diagnose tomcat tomcat` |
 
+## Baseline intake
+
+`ror collect baseline` is the general-purpose first look at an unfamiliar host. It combines system, network, storage, and resolver state with security-mode visibility, firewall state, time synchronization, failed services, recent warning-or-higher journal entries, kernel package information, and reboot status.
+
+It intentionally reports only whether common proxy variables are present rather than printing their values. Process environment blocks are also excluded because they commonly contain credentials and tokens.
+
 ## Collection files
 
 ```bash
+ror collect baseline
 ror collect system
 ror collect tls example.com:443
 ror collect systemd sshd

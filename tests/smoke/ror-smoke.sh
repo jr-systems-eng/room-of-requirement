@@ -18,10 +18,11 @@ check "${ROR[@]}" find ssh >/dev/null
 check "${ROR[@]}" find --type runbook ssh >/dev/null
 PAGER=cat check "${ROR[@]}" cheat subnetting >/dev/null
 
-pkg_list="$(check "${ROR[@]}" pkg list)"
+pkg_list="$("${ROR[@]}" pkg list)"
 printf '%s\n' "$pkg_list" | grep -q 'minimal'
 printf '%s\n' "$pkg_list" | grep -q 'linux-admin'
 printf '%s\n' "$pkg_list" | grep -q 'kubernetes'
+[ "$(printf '%s\n' "$pkg_list" | wc -l | tr -d ' ')" -eq 10 ]
 check "${ROR[@]}" pkg suggest minimal >/dev/null
 
 check "${ROR[@]}" dotfiles status >/dev/null

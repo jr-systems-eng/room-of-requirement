@@ -1,5 +1,19 @@
+# Machine-local state: never commit anything under local/ except its guide/placeholders.
 /local/*
 !/local/README.md
 !/local/.gitkeep
+
+# Environment and credentials
 *.env
 *.key
+*.p12
+*.pfx
+*.jks
+*.kdb
+*.pem.key
+
+# Common generated/local state
+*.log
+*.swp
+.DS_Store
+Thumbs.db

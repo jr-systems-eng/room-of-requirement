@@ -1,0 +1,27 @@
+---
+- name: Describe the change
+  hosts: all
+  become: true
+  gather_facts: true
+  serial: 1
+
+  vars:
+    # Put portable defaults here. Keep environment-specific values in inventory/group_vars.
+    example_value: true
+
+  pre_tasks:
+    - name: Show target
+      ansible.builtin.debug:
+        msg: "Working on {{ inventory_hostname }} ({{ ansible_facts.distribution }} {{ ansible_facts.distribution_version }})"
+
+  tasks:
+    - name: Replace with the intended idempotent task
+      ansible.builtin.debug:
+        msg: "TODO"
+      changed_when: false
+
+  post_tasks:
+    - name: Verify expected state
+      ansible.builtin.debug:
+        msg: "Add an explicit validation step"
+      changed_when: false

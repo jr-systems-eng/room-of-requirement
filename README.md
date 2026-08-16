@@ -4,4 +4,4 @@ Portable scripts, dotfiles, templates, tools, and quick-reference material usabl
 
 ## Quick Links
 
-- [Cheat Sheets](cheat-sheets/README.md)
+- [Cheat Sheets](cheat-sheets/README.md) — Linux, networking, Ansible, containers/Kubernetes, Git/Bash, certificates/Java, and vSphere references.

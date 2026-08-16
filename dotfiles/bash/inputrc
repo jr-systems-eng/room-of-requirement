@@ -1,1 +1,7 @@
-# inputrc
+# Room of Requirement - portable Readline defaults
+set completion-ignore-case on
+set show-all-if-ambiguous on
+
+# Search command history using the text already typed on the line.
+"\e[A": history-search-backward
+"\e[B": history-search-forward

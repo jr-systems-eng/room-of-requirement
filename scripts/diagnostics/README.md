@@ -25,6 +25,22 @@ The baseline path deliberately skips the potentially expensive top-level `du /` 
 
 The baseline intentionally reports only whether common proxy variables are present rather than printing their values. Process environment blocks are also excluded because they commonly contain credentials and tokens.
 
+## Interpreted summaries
+
+The systemd, SSH, TLS, DNS, storage, Java, and Tomcat collectors end with a `SUMMARY` section when they can make useful observations from direct evidence.
+
+Typical summary signals include:
+
+- systemd unit load/active state and last main-process exit status;
+- SSH daemon activity, config validation, listener state, and selected KEX/authentication log patterns;
+- TLS certificate receipt, OpenSSL verification result, hostname match where supported, and expiry windows;
+- resolver configuration, system-resolver success, and DNS response status;
+- filesystem/inode thresholds and deleted-but-open files;
+- Java runtime/process presence and whether a requested PID appears to be Java;
+- Tomcat service/PID state plus selected `OutOfMemoryError`, PKIX, bind-conflict, and connection-failure patterns.
+
+Interpretation is intentionally conservative. `WARN` means **inspect this evidence**, not **the root cause is proven**. Raw command output remains above the summary so every observation can be checked.
+
 ## Collection files
 
 ```bash
@@ -40,4 +56,4 @@ Collection writes a timestamped text file to the current directory while also sh
 
 Diagnostic scripts should not restart services, install packages, alter configuration, change permissions, or otherwise mutate the target system. Network diagnostics may make ordinary read-only connection/lookup attempts when that is the purpose of the collector.
 
-Avoid collecting secrets. In particular, process environment blocks are intentionally excluded from Java/Tomcat diagnostics because they commonly contain credentials and tokens.
+Avoid collecting secrets. In particular, process environment blocks are intentionally excluded from Java/Tomcat diagnostics because they commonly contain credentials and tokens. The Tomcat collector also excludes the systemd `Environment` property for the same reason.

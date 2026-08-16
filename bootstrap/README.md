@@ -13,8 +13,8 @@ bash bootstrap/install.sh
 This currently:
 
 - creates `~/.local/bin` if needed;
-- makes `bin/ror` and shell diagnostic scripts executable;
-- links `~/.local/bin/ror` to the repository's `bin/ror`;
+- creates a small executable `ror` wrapper under `~/.local/bin` that invokes the repository's shared Bash implementation;
+- leaves tracked repository file modes and content unchanged, so bootstrap does not dirty the Git working tree;
 - does not overwrite shell profiles or other user configuration.
 
 If `~/.local/bin` is not in `PATH`, add it explicitly to your shell profile.

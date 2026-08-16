@@ -124,3 +124,11 @@ ror_install_packages() {
     *) return 2 ;;
   esac
 }
+
+# `bin/ror` originally used sudo directly for package installation. On minimal
+# servers root may be the active user and sudo may not be installed. Provide a
+# process-local compatibility function only in that exact case; it simply runs
+# the requested command directly and is not exported to child shells.
+if [ "$(id -u 2>/dev/null || printf 1)" -eq 0 ] && ! command -v sudo >/dev/null 2>&1; then
+  sudo() { "$@"; }
+fi

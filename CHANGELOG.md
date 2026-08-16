@@ -2,6 +2,14 @@
 
 Notable changes to Room of Requirement are recorded here. The project uses the changelog to track capability-level changes rather than every individual file edit.
 
+## v0.5.1 - 2026-08-16
+
+### Fixed
+
+- `ror pkg list` now prints each package profile on its own line instead of concatenating all profiles into one long line.
+- `ror pkg suggest` now terminates the profile purpose line cleanly before printing package details.
+- Smoke tests now assert the expected line structure of the package profile list to prevent this formatting regression.
+
 ## v0.5.0 - 2026-08-16
 
 ### Added

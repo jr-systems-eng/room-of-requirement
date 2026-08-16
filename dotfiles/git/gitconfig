@@ -1,2 +1,26 @@
-[user]
-	name = Your Name
+# Room of Requirement - portable Git defaults
+# User identity intentionally remains in the host's ~/.gitconfig.
+
+[init]
+    defaultBranch = main
+
+[fetch]
+    prune = true
+
+[pull]
+    ff = only
+
+[push]
+    autoSetupRemote = true
+
+[color]
+    ui = auto
+
+[core]
+    excludesfile = ~/.config/ror/gitignore_global
+
+[alias]
+    st = status --short --branch
+    lg = log --graph --decorate --oneline --all
+    last = log -1 HEAD --stat
+    unstage = restore --staged

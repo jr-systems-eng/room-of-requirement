@@ -1,0 +1,11 @@
+[Unit]
+Description=Run example task on a schedule
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+RandomizedDelaySec=5m
+Unit=example.service
+
+[Install]
+WantedBy=timers.target

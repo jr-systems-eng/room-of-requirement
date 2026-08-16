@@ -13,26 +13,45 @@ export ROR_HOME
 . "$ROR_HOME/lib/network.sh"
 # shellcheck source=../lib/logging.sh
 . "$ROR_HOME/lib/logging.sh"
+# shellcheck source=../lib/packages.sh
+. "$ROR_HOME/lib/packages.sh"
 
 usage() {
   cat <<'EOF'
 Room of Requirement (ror)
 
-Usage:
-  ror help
-  ror doctor
+Discovery:
+  ror doctor [--install-suggestions]
   ror info
-  ror find <term>
+  ror path [cheat-sheets|snippets|scripts|templates|docs|local]
+  ror find [--type TYPE] <term>
+  ror search [--type TYPE] <term>
   ror cheat <term>
+  ror cheatsheet <term>
+
+Troubleshooting:
+  ror diagnose <system|network|systemd|ssh|tls|dns|storage|java|tomcat> [args...]
+  ror diag <target> [args...]
+  ror collect <target> [args...]
   ror run <script> [args...]
+
+Reuse/bootstrap:
   ror new <template> <destination>
+  ror pkg list
+  ror pkg suggest [troubleshooting|networking|development]
+  ror pkg install <bundle-or-package>
+  ror dotfiles status
   ror update
 
 Examples:
-  ror doctor
+  ror doctor --install-suggestions
   ror find ssh
+  ror find --type runbook ssh
   ror cheat subnetting
-  ror run diagnostics/system-info.sh
+  ror diagnose systemd sshd
+  ror diagnose tls example.com:443
+  ror collect java 12345
+  ror pkg suggest troubleshooting
   ror new systemd/service.service ./myapp.service
 EOF
 }
@@ -44,19 +63,36 @@ cmd_info() {
   printf 'OS_FAMILY=%s\n' "$ROR_OS_FAMILY"
   printf 'ARCH=%s\n' "$ROR_ARCH"
   printf 'WSL=%s\n' "$ROR_WSL"
+  printf 'PACKAGE_MANAGER=%s\n' "$(ror_package_manager)"
+}
+
+cmd_path() {
+  case "${1:-home}" in
+    home|root) printf '%s\n' "$ROR_HOME" ;;
+    cheat|cheats|cheat-sheets) printf '%s\n' "$ROR_HOME/cheat-sheets" ;;
+    snippet|snippets) printf '%s\n' "$ROR_HOME/snippets" ;;
+    script|scripts) printf '%s\n' "$ROR_HOME/scripts" ;;
+    template|templates) printf '%s\n' "$ROR_HOME/templates" ;;
+    doc|docs) printf '%s\n' "$ROR_HOME/docs" ;;
+    local) printf '%s\n' "$ROR_HOME/local" ;;
+    *) ror_die "unknown ROR path: $1" ;;
+  esac
 }
 
 check_tool() {
   local tool="$1"
   if ror_have "$tool"; then
-    printf '  %-12s %s\n' "$tool" 'yes'
+    printf '  %-14s %s\n' "$tool" 'yes'
   else
-    printf '  %-12s %s\n' "$tool" 'no'
+    printf '  %-14s %s\n' "$tool" 'no'
   fi
 }
 
 cmd_doctor() {
+  local suggestions='no'
+  [ "${1:-}" = '--install-suggestions' ] && suggestions='yes'
   ror_detect_os
+
   printf 'Room of Requirement\n'
   ror_hr
   printf 'Home:       %s\n' "$ROR_HOME"
@@ -66,41 +102,85 @@ cmd_doctor() {
   printf 'Shell:      %s\n' "${SHELL:-unknown}"
   printf 'User:       %s\n' "$(id -un 2>/dev/null || printf unknown)"
   printf 'sudo:       %s\n' "$(ror_yesno command -v sudo)"
+  printf 'Pkg mgr:    %s\n' "$(ror_package_manager)"
   printf 'Primary IP: %s\n' "$(ror_primary_ip || true)"
   printf 'Gateway:    %s\n' "$(ror_default_gateway || true)"
 
+  if ror_have systemd-detect-virt; then
+    printf 'Virt:       %s\n' "$(systemd-detect-virt 2>/dev/null || printf none)"
+  fi
+  if ror_have getenforce; then
+    printf 'SELinux:    %s\n' "$(getenforce 2>/dev/null || true)"
+  elif ror_have aa-status; then
+    printf 'AppArmor:   available\n'
+  fi
+
   printf '\nTools\n'
   ror_hr
-  for tool in git curl wget jq dig openssl ssh python3 ansible docker kubectl govc; do
+  for tool in git curl wget jq dig nc openssl ssh python3 ansible docker podman kubectl govc gcloud lsof strace tcpdump traceroute tmux; do
     check_tool "$tool"
   done
 
   printf '\nRepository\n'
   ror_hr
   if ror_have git && git -C "$ROR_HOME" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    printf '  branch       %s\n' "$(git -C "$ROR_HOME" branch --show-current 2>/dev/null || true)"
+    printf '  branch         %s\n' "$(git -C "$ROR_HOME" branch --show-current 2>/dev/null || true)"
     if [ -n "$(git -C "$ROR_HOME" status --porcelain 2>/dev/null)" ]; then
-      printf '  worktree     dirty\n'
+      printf '  worktree       dirty\n'
     else
-      printf '  worktree     clean\n'
+      printf '  worktree       clean\n'
     fi
-    printf '  commit       %s\n' "$(git -C "$ROR_HOME" rev-parse --short HEAD 2>/dev/null || true)"
+    printf '  commit         %s\n' "$(git -C "$ROR_HOME" rev-parse --short HEAD 2>/dev/null || true)"
   else
     printf '  git metadata unavailable\n'
+  fi
+
+  if [ "$suggestions" = 'yes' ]; then
+    printf '\nInstall suggestions\n'
+    ror_hr
+    cmd_pkg suggest troubleshooting
+  fi
+}
+
+find_in_root() {
+  local label="$1" root="$2" term="$3"
+  [ -d "$root" ] || return 0
+  local matches
+  matches="$({ find "$root" -type f 2>/dev/null | grep -i -- "$term" || true; grep -RIl -i --exclude-dir=.git -- "$term" "$root" 2>/dev/null || true; } | sed "s#^$ROR_HOME/##" | sort -u)"
+  if [ -n "$matches" ]; then
+    printf '%s\n' "$label"
+    printf '%s\n' "$matches" | sed 's/^/  /'
+    printf '\n'
   fi
 }
 
 cmd_find() {
+  local type='all'
+  if [ "${1:-}" = '--type' ]; then
+    type="${2:-}"
+    shift 2 || true
+  fi
   local term="${1:-}"
   [ -n "$term" ] || ror_die 'find requires a search term'
-  if ror_have grep; then
-    find "$ROR_HOME/cheat-sheets" "$ROR_HOME/snippets" "$ROR_HOME/scripts" "$ROR_HOME/templates" "$ROR_HOME/docs" \
-      -type f 2>/dev/null | grep -i -- "$term" || true
-    grep -RIl --exclude-dir=.git -- "$term" \
-      "$ROR_HOME/cheat-sheets" "$ROR_HOME/snippets" "$ROR_HOME/scripts" "$ROR_HOME/templates" "$ROR_HOME/docs" 2>/dev/null || true
-  else
-    ror_die 'grep is required for search'
-  fi | sed "s#^$ROR_HOME/##" | sort -u
+  ror_have grep || ror_die 'grep is required for search'
+
+  case "$type" in
+    all)
+      find_in_root 'CHEAT SHEETS' "$ROR_HOME/cheat-sheets" "$term"
+      find_in_root 'SNIPPETS' "$ROR_HOME/snippets" "$term"
+      find_in_root 'DIAGNOSTICS / SCRIPTS' "$ROR_HOME/scripts" "$term"
+      find_in_root 'RUNBOOKS / DOCS' "$ROR_HOME/docs" "$term"
+      find_in_root 'TEMPLATES' "$ROR_HOME/templates" "$term"
+      ;;
+    cheat|cheats|cheat-sheet|cheat-sheets) find_in_root 'CHEAT SHEETS' "$ROR_HOME/cheat-sheets" "$term" ;;
+    snippet|snippets) find_in_root 'SNIPPETS' "$ROR_HOME/snippets" "$term" ;;
+    diagnostic|diagnostics) find_in_root 'DIAGNOSTICS' "$ROR_HOME/scripts/diagnostics" "$term" ;;
+    script|scripts) find_in_root 'SCRIPTS' "$ROR_HOME/scripts" "$term" ;;
+    runbook|runbooks) find_in_root 'RUNBOOKS' "$ROR_HOME/docs/runbooks" "$term" ;;
+    doc|docs) find_in_root 'DOCS' "$ROR_HOME/docs" "$term" ;;
+    template|templates) find_in_root 'TEMPLATES' "$ROR_HOME/templates" "$term" ;;
+    *) ror_die "unknown find type: $type" ;;
+  esac
 }
 
 cmd_cheat() {
@@ -109,7 +189,7 @@ cmd_cheat() {
   local matches
   matches="$(find "$ROR_HOME/cheat-sheets" -type f -name '*.md' 2>/dev/null | grep -i -- "$term" || true)"
   if [ -z "$matches" ]; then
-    matches="$(grep -RIl --include='*.md' -- "$term" "$ROR_HOME/cheat-sheets" 2>/dev/null || true)"
+    matches="$(grep -RIl -i --include='*.md' -- "$term" "$ROR_HOME/cheat-sheets" 2>/dev/null || true)"
   fi
   [ -n "$matches" ] || ror_die "no cheat sheet matched: $term"
 
@@ -131,10 +211,52 @@ cmd_run() {
   [ -f "$path" ] || ror_die "script not found: scripts/$target"
   case "$path" in
     *.sh) bash "$path" "$@" ;;
-    *.py) python3 "$path" "$@" ;;
-    *.ps1) pwsh -File "$path" "$@" ;;
+    *.py) ror_have python3 || ror_die 'python3 is required'; python3 "$path" "$@" ;;
+    *.ps1) ror_have pwsh || ror_die 'pwsh is required'; pwsh -File "$path" "$@" ;;
     *) "$path" "$@" ;;
   esac
+}
+
+diagnostic_script() {
+  case "$1" in
+    system) printf '%s\n' 'diagnostics/system-info.sh' ;;
+    network) printf '%s\n' 'diagnostics/network-info.sh' ;;
+    systemd|service) printf '%s\n' 'diagnostics/systemd-service.sh' ;;
+    ssh|sshd) printf '%s\n' 'diagnostics/ssh-server.sh' ;;
+    tls|ssl|certificate|cert) printf '%s\n' 'diagnostics/tls-endpoint.sh' ;;
+    dns) printf '%s\n' 'diagnostics/dns.sh' ;;
+    storage|disk|filesystem|fs) printf '%s\n' 'diagnostics/storage.sh' ;;
+    java|jvm) printf '%s\n' 'diagnostics/java-process.sh' ;;
+    tomcat) printf '%s\n' 'diagnostics/tomcat.sh' ;;
+    *) return 1 ;;
+  esac
+}
+
+cmd_diagnose() {
+  local target="${1:-}"
+  [ -n "$target" ] || ror_die 'diagnose requires a target'
+  shift || true
+  local script
+  script="$(diagnostic_script "$target")" || ror_die "unknown diagnostic target: $target"
+  cmd_run "$script" "$@"
+}
+
+cmd_collect() {
+  local target="${1:-}"
+  [ -n "$target" ] || ror_die 'collect requires a target'
+  shift || true
+  diagnostic_script "$target" >/dev/null 2>&1 || ror_die "unknown collection target: $target"
+  local host stamp safe_target outfile rc
+  host="$(hostname -s 2>/dev/null || hostname 2>/dev/null || printf host)"
+  stamp="$(date +%Y%m%d-%H%M%S)"
+  safe_target="$(printf '%s' "$target" | tr -c 'A-Za-z0-9._-' '_')"
+  outfile="${ROR_COLLECT_OUTPUT:-./ror-collect-${safe_target}-${host}-${stamp}.txt}"
+
+  printf 'Collecting %s diagnostic to %s\n' "$target" "$outfile"
+  cmd_diagnose "$target" "$@" 2>&1 | tee "$outfile"
+  rc=${PIPESTATUS[0]}
+  printf '\nSaved: %s\n' "$outfile"
+  return "$rc"
 }
 
 cmd_new() {
@@ -150,6 +272,59 @@ cmd_new() {
   printf 'Created %s from %s\n' "$destination" "templates/$template"
 }
 
+cmd_pkg() {
+  local action="${1:-list}" bundle="${2:-troubleshooting}" manager missing
+  case "$action" in
+    list)
+      printf 'Available bundles:\n  troubleshooting\n  networking\n  development\n'
+      ;;
+    suggest)
+      manager="$(ror_package_manager)"
+      missing="$(ror_missing_bundle_packages "$bundle")"
+      if [ -z "$missing" ]; then
+        printf 'All tools in bundle "%s" are already available.\n' "$bundle"
+        return 0
+      fi
+      printf 'Package manager: %s\n' "$manager"
+      printf 'Missing packages:\n'
+      printf '%s\n' "$missing" | sed 's/^/  /'
+      # Package names generated internally contain no whitespace.
+      # shellcheck disable=SC2086
+      ror_install_command "$manager" $missing
+      ;;
+    install)
+      manager="$(ror_package_manager)"
+      [ "$manager" != 'unknown' ] || ror_die 'no supported package manager detected'
+      missing="$(ror_missing_bundle_packages "$bundle")"
+      [ -n "$missing" ] || { printf 'Nothing to install for %s.\n' "$bundle"; return 0; }
+      printf 'Installing for %s using %s:\n%s\n' "$bundle" "$manager" "$missing"
+      # Values come from the internal package mapping, not eval.
+      # shellcheck disable=SC2086
+      case "$manager" in
+        dnf) sudo dnf install -y $missing ;;
+        apt) sudo apt-get update && sudo apt-get install -y $missing ;;
+        zypper) sudo zypper install -y $missing ;;
+        pacman) sudo pacman -S --needed $missing ;;
+        brew) brew install $missing ;;
+        winget) winget install $missing ;;
+        *) ror_die "unsupported package manager: $manager" ;;
+      esac
+      ;;
+    *) ror_die 'pkg usage: ror pkg list|suggest|install [bundle-or-package]' ;;
+  esac
+}
+
+cmd_dotfiles() {
+  case "${1:-status}" in
+    status)
+      printf 'Portable dotfiles available:\n'
+      find "$ROR_HOME/dotfiles" -type f 2>/dev/null | sed "s#^$ROR_HOME/dotfiles/#  #" | sort
+      printf '\nInstallation is intentionally not automatic yet; use these as reviewed source material.\n'
+      ;;
+    *) ror_die 'dotfiles currently supports: status' ;;
+  esac
+}
+
 cmd_update() {
   ror_have git || ror_die 'git is required for update'
   [ -z "$(git -C "$ROR_HOME" status --porcelain)" ] || ror_die 'working tree is not clean; refusing to update'
@@ -158,12 +333,17 @@ cmd_update() {
 
 case "${1:-help}" in
   help|-h|--help) usage ;;
-  doctor) cmd_doctor ;;
+  doctor) shift; cmd_doctor "$@" ;;
   info) cmd_info ;;
-  find) shift; cmd_find "$@" ;;
-  cheat) shift; cmd_cheat "$@" ;;
+  path) shift; cmd_path "$@" ;;
+  find|search) shift; cmd_find "$@" ;;
+  cheat|cheatsheet) shift; cmd_cheat "$@" ;;
+  diagnose|diag) shift; cmd_diagnose "$@" ;;
+  collect) shift; cmd_collect "$@" ;;
   run) shift; cmd_run "$@" ;;
   new) shift; cmd_new "$@" ;;
+  pkg) shift; cmd_pkg "$@" ;;
+  dotfiles) shift; cmd_dotfiles "$@" ;;
   update) cmd_update ;;
   *) usage; exit 1 ;;
 esac

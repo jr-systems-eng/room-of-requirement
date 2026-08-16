@@ -26,7 +26,9 @@ printf 'Scope: read-only host intake. Likely-secret process environment blocks a
 
 run_collector SYSTEM system-info.sh
 run_collector NETWORK network-info.sh
+export ROR_STORAGE_SKIP_DU=1
 run_collector STORAGE storage.sh
+unset ROR_STORAGE_SKIP_DU
 run_collector DNS dns.sh
 
 section SECURITY

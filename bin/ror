@@ -30,7 +30,7 @@ Discovery:
   ror cheatsheet <term>
 
 Troubleshooting:
-  ror diagnose <system|network|systemd|ssh|tls|dns|storage|java|tomcat> [args...]
+  ror diagnose <baseline|system|network|systemd|ssh|tls|dns|storage|java|tomcat> [args...]
   ror diag <target> [args...]
   ror collect <target> [args...]
   ror run <script> [args...]
@@ -50,6 +50,7 @@ Examples:
   ror cheat subnetting
   ror diagnose systemd sshd
   ror diagnose tls example.com:443
+  ror collect baseline
   ror collect java 12345
   ror pkg suggest troubleshooting
   ror new systemd/service.service ./myapp.service
@@ -88,6 +89,115 @@ check_tool() {
   fi
 }
 
+doctor_item() {
+  local state="$1" label="$2" detail="${3:-}"
+  printf '  [%-4s] %-20s %s\n' "$state" "$label" "$detail"
+}
+
+doctor_health() {
+  local disk_pct mem_pct failed sync firewall proxy reboot
+
+  printf '\nSystem health\n'
+  ror_hr
+
+  disk_pct="$(df -P / 2>/dev/null | awk 'NR==2 {gsub(/%/, "", $5); print $5}')"
+  if [[ "$disk_pct" =~ ^[0-9]+$ ]]; then
+    if [ "$disk_pct" -ge 90 ]; then
+      doctor_item WARN 'root filesystem' "${disk_pct}% used"
+    else
+      doctor_item OK 'root filesystem' "${disk_pct}% used"
+    fi
+  else
+    doctor_item INFO 'root filesystem' 'usage unavailable'
+  fi
+
+  if [ -r /proc/meminfo ]; then
+    mem_pct="$(awk '
+      /^MemTotal:/ {total=$2}
+      /^MemAvailable:/ {avail=$2}
+      END {
+        if (total > 0 && avail >= 0) printf "%.0f", ((total-avail)*100)/total
+      }' /proc/meminfo)"
+    if [[ "$mem_pct" =~ ^[0-9]+$ ]]; then
+      if [ "$mem_pct" -ge 90 ]; then
+        doctor_item WARN 'memory pressure' "${mem_pct}% used"
+      else
+        doctor_item OK 'memory pressure' "${mem_pct}% used"
+      fi
+    fi
+  else
+    doctor_item INFO 'memory pressure' 'Linux MemAvailable unavailable'
+  fi
+
+  if ror_have systemctl; then
+    failed="$(systemctl --failed --no-legend --no-pager 2>/dev/null | sed '/^[[:space:]]*$/d' | wc -l | tr -d ' ')"
+    if [[ "$failed" =~ ^[0-9]+$ ]] && [ "$failed" -gt 0 ]; then
+      doctor_item WARN 'failed systemd units' "$failed"
+    else
+      doctor_item OK 'failed systemd units' "${failed:-0}"
+    fi
+  else
+    doctor_item INFO 'failed services' 'systemctl unavailable'
+  fi
+
+  if ror_have timedatectl; then
+    sync="$(timedatectl show -p NTPSynchronized --value 2>/dev/null || true)"
+    case "$sync" in
+      yes) doctor_item OK 'time synchronization' 'synchronized' ;;
+      no) doctor_item WARN 'time synchronization' 'not synchronized' ;;
+      *) doctor_item INFO 'time synchronization' 'status unavailable' ;;
+    esac
+  elif ror_have chronyc; then
+    if chronyc tracking >/dev/null 2>&1; then
+      doctor_item OK 'time synchronization' 'chrony responding'
+    else
+      doctor_item WARN 'time synchronization' 'chrony check failed'
+    fi
+  else
+    doctor_item INFO 'time synchronization' 'no supported status tool'
+  fi
+
+  if ror_have getenforce; then
+    doctor_item INFO 'SELinux' "$(getenforce 2>/dev/null || printf unknown)"
+  elif ror_have aa-status; then
+    doctor_item INFO 'AppArmor' 'status tool available'
+  else
+    doctor_item INFO 'MAC security' 'SELinux/AppArmor status tool absent'
+  fi
+
+  if ror_have firewall-cmd; then
+    firewall="$(firewall-cmd --state 2>/dev/null || printf inactive)"
+    [ "$firewall" = 'running' ] && doctor_item OK 'firewall' 'firewalld running' || doctor_item WARN 'firewall' "firewalld ${firewall}"
+  elif ror_have ufw; then
+    firewall="$(ufw status 2>/dev/null | head -1 || true)"
+    doctor_item INFO 'firewall' "${firewall:-ufw status unavailable}"
+  else
+    doctor_item INFO 'firewall' 'no supported firewall CLI found'
+  fi
+
+  proxy='no'
+  for name in HTTP_PROXY HTTPS_PROXY http_proxy https_proxy; do
+    [ -n "${!name:-}" ] && proxy='yes'
+  done
+  doctor_item INFO 'proxy environment' "configured: $proxy"
+
+  reboot='unknown'
+  if [ -f /var/run/reboot-required ]; then
+    reboot='required'
+  elif ror_have needs-restarting; then
+    if needs-restarting -r >/dev/null 2>&1; then
+      reboot='not required'
+    else
+      reboot='required or check failed'
+    fi
+  fi
+  case "$reboot" in
+    required|'required or check failed') doctor_item WARN 'reboot status' "$reboot" ;;
+    'not required') doctor_item OK 'reboot status' "$reboot" ;;
+    *) doctor_item INFO 'reboot status' "$reboot" ;;
+  esac
+}
+
 cmd_doctor() {
   local suggestions='no'
   [ "${1:-}" = '--install-suggestions' ] && suggestions='yes'
@@ -101,6 +211,7 @@ cmd_doctor() {
   printf 'WSL:        %s\n' "$ROR_WSL"
   printf 'Shell:      %s\n' "${SHELL:-unknown}"
   printf 'User:       %s\n' "$(id -un 2>/dev/null || printf unknown)"
+  printf 'Root:       %s\n' "$([ "$(id -u 2>/dev/null || printf 1)" -eq 0 ] && printf yes || printf no)"
   printf 'sudo:       %s\n' "$(ror_yesno command -v sudo)"
   printf 'Pkg mgr:    %s\n' "$(ror_package_manager)"
   printf 'Primary IP: %s\n' "$(ror_primary_ip || true)"
@@ -109,11 +220,8 @@ cmd_doctor() {
   if ror_have systemd-detect-virt; then
     printf 'Virt:       %s\n' "$(systemd-detect-virt 2>/dev/null || printf none)"
   fi
-  if ror_have getenforce; then
-    printf 'SELinux:    %s\n' "$(getenforce 2>/dev/null || true)"
-  elif ror_have aa-status; then
-    printf 'AppArmor:   available\n'
-  fi
+
+  doctor_health
 
   printf '\nTools\n'
   ror_hr
@@ -219,6 +327,7 @@ cmd_run() {
 
 diagnostic_script() {
   case "$1" in
+    baseline|intake) printf '%s\n' 'diagnostics/baseline.sh' ;;
     system) printf '%s\n' 'diagnostics/system-info.sh' ;;
     network) printf '%s\n' 'diagnostics/network-info.sh' ;;
     systemd|service) printf '%s\n' 'diagnostics/systemd-service.sh' ;;
@@ -272,6 +381,16 @@ cmd_new() {
   printf 'Created %s from %s\n' "$destination" "templates/$template"
 }
 
+run_admin() {
+  if [ "$(id -u 2>/dev/null || printf 1)" -eq 0 ]; then
+    "$@"
+  elif ror_have sudo; then
+    sudo "$@"
+  else
+    ror_die 'administrative privileges are required, but sudo is unavailable'
+  fi
+}
+
 cmd_pkg() {
   local action="${1:-list}" bundle="${2:-troubleshooting}" manager missing
   case "$action" in
@@ -301,10 +420,10 @@ cmd_pkg() {
       # Values come from the internal package mapping, not eval.
       # shellcheck disable=SC2086
       case "$manager" in
-        dnf) sudo dnf install -y $missing ;;
-        apt) sudo apt-get update && sudo apt-get install -y $missing ;;
-        zypper) sudo zypper install -y $missing ;;
-        pacman) sudo pacman -S --needed $missing ;;
+        dnf) run_admin dnf install -y $missing ;;
+        apt) run_admin apt-get update; run_admin apt-get install -y $missing ;;
+        zypper) run_admin zypper install -y $missing ;;
+        pacman) run_admin pacman -S --needed $missing ;;
         brew) brew install $missing ;;
         winget) winget install $missing ;;
         *) ror_die "unsupported package manager: $manager" ;;

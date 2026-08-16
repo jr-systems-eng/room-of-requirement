@@ -53,6 +53,7 @@ cmp -s "$ROOT/dotfiles/tmux/tmux.conf" "$HOME/.config/ror/tmux.conf"
 assert_exact "$HOME/.tmux.conf" 'original tmux'
 [ ! -e "$HOME/.config/ror/tmux.conf" ]
 
-"${ROR[@]}" dotfiles backups | grep -q 'id='
+backup_list="$("${ROR[@]}" dotfiles backups)"
+grep -q 'id=' <<< "$backup_list"
 
 printf 'Dotfile lifecycle smoke tests passed.\n'

@@ -8,6 +8,7 @@ A portable engineering toolbox for unfamiliar systems: quick references, diagnos
 
 | Need | Go to |
 |---|---|
+| Bring together everything ROR knows about a topic | `ror need ssh` |
 | Quickly assess an unfamiliar host | `ror doctor` |
 | Capture a general-purpose handoff bundle | `ror collect baseline` |
 | Prepare an admin/jumpbox toolset | `ror pkg suggest linux-admin` |
@@ -24,6 +25,32 @@ A portable engineering toolbox for unfamiliar systems: quick references, diagnos
 ## The `ror` command
 
 `bin/ror` is the front door to the repository.
+
+### Ask the Room
+
+`ror need` provides a curated view of the resources related to a problem instead of making you remember which directory contains them.
+
+```bash
+ror need list
+ror need ssh
+ror need certificate
+ror need storage
+ror need java
+ror need kubernetes
+```
+
+For a curated topic, ROR shows:
+
+- what the topic covers;
+- recommended first commands;
+- related references/cheat sheets;
+- diagnostic collectors;
+- troubleshooting runbooks;
+- useful snippets, templates, or managed configuration when applicable.
+
+Aliases map common wording to the same topic. For example, `certificate`, `cert`, `ssl`, and `openssl` all map to the `tls` topic; `sftp` maps to `ssh`; and `pkix`/`keystore` map to `java`.
+
+The relationship map is deliberately deterministic and lives in `lib/resources.sh`. `ror need` does not use fuzzy inference or claim to diagnose a problem. If a topic does not have a curated map yet, it falls back to normal repository search.
 
 ### First look at a machine
 
@@ -48,6 +75,8 @@ ror search java
 ror cheat subnetting
 ```
 
+Use `ror need` when a curated problem view is useful; use `ror find` when you want literal repository search.
+
 ### Diagnose and collect
 
 ```bash
@@ -62,6 +91,10 @@ ror diagnose storage
 ror diagnose java 12345
 ror diagnose tomcat tomcat
 ```
+
+High-value targeted collectors now end with a conservative `SUMMARY` section. These summaries report directly observable state such as service activity, config validation, listener presence, certificate verification/expiry, DNS response status, filesystem/inode pressure, Java process presence, and selected high-signal log patterns.
+
+A warning means **inspect this evidence**, not **ROR has proven the root cause**. The full raw evidence remains above the summary so the interpretation is always inspectable.
 
 Save the same diagnostic output as a timestamped handoff file:
 
@@ -192,13 +225,13 @@ Plain bootstrap never silently installs packages or dotfiles.
 | `baseline` | General-purpose read-only host intake/handoff bundle |
 | `system` | OS, kernel, uptime, CPU, memory, failed services, core state |
 | `network` | addresses, routes, DNS config, listeners, basic network state |
-| `systemd` | service status, unit definition, process and recent journal |
-| `ssh` | sshd state, listeners, effective authentication/crypto config, logs |
-| `tls` | remote handshake, leaf certificate, SANs and verification result |
-| `dns` | resolver config/status and optional name lookup |
-| `storage` | block devices, filesystems, inodes, mounts, LVM, large paths, open-deleted files |
-| `java` | Java runtime/process/JVM metadata without dumping environments |
-| `tomcat` | service/process/listener/log context for Tomcat |
+| `systemd` | service status, unit definition, process, recent journal, observed-state summary |
+| `ssh` | sshd state, listener/config validation, auth/crypto config, high-signal log patterns |
+| `tls` | remote handshake, certificate names/expiry, chain verification, observed-state summary |
+| `dns` | resolver config/status, optional lookup, DNS response summary |
+| `storage` | block devices, filesystems, inodes, mounts, LVM, large paths, open-deleted files, pressure summary |
+| `java` | Java runtime/process/JVM metadata and process-presence summary without dumping environments |
+| `tomcat` | service/process/log context plus selected Java/Tomcat failure patterns |
 
 ## Trust and validation
 
@@ -209,6 +242,8 @@ Changes on `main` are guarded by GitHub Actions checks for:
 - local Markdown-link validation
 - PowerShell parsing
 - ROR CLI smoke tests on Linux and Windows runners
+- curated `ror need` topic/resource behavior
+- diagnostic `SUMMARY` presence for portable smoke-test targets
 - isolated dotfile install/restore lifecycle tests on Linux and Windows runners
 - full-history secret scanning
 
@@ -228,7 +263,8 @@ See [`tests/`](tests/README.md) for the validation contract.
 - **Safe:** diagnostics/discovery are read-only by default; mutations are explicit and reversible where practical.
 - **OS-aware:** platform-specific behavior belongs behind common interfaces.
 - **Local stays local:** secrets and machine-specific settings are not committed.
-- **Discoverable:** `ror find` should locate useful material across resource types.
+- **Discoverable:** `ror need` provides curated relationships while `ror find` provides literal search.
+- **Inspectable:** diagnostic interpretation sits beside the raw evidence and never hides how a conclusion was reached.
 - **Reusable:** capture procedures and patterns once rather than reconstructing them during every incident.
 - **Trustworthy:** automated validation should catch portability, syntax, link, rollback, and secret-leak regressions before they become normal tooling.
 

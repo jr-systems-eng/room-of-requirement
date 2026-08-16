@@ -17,8 +17,15 @@ check "${ROR[@]}" path scripts >/dev/null
 check "${ROR[@]}" find ssh >/dev/null
 check "${ROR[@]}" find --type runbook ssh >/dev/null
 PAGER=cat check "${ROR[@]}" cheat subnetting >/dev/null
-check "${ROR[@]}" pkg list >/dev/null
+
+pkg_list="$(check "${ROR[@]}" pkg list)"
+printf '%s\n' "$pkg_list" | grep -q 'minimal'
+printf '%s\n' "$pkg_list" | grep -q 'linux-admin'
+printf '%s\n' "$pkg_list" | grep -q 'kubernetes'
+check "${ROR[@]}" pkg suggest minimal >/dev/null
+
 check "${ROR[@]}" dotfiles status >/dev/null
+check "${ROR[@]}" dotfiles diff bash >/dev/null
 check "${ROR[@]}" diagnose system >/dev/null
 check "${ROR[@]}" diagnose dns localhost >/dev/null
 

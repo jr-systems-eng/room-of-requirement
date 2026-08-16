@@ -38,6 +38,7 @@ Notable changes to Room of Requirement are recorded here. The project uses the c
 - README now presents `ror doctor` and `ror collect baseline` as the recommended first-look workflow for unfamiliar machines.
 - Architecture documentation now defines the repository trust model, test contract, doctor model, and baseline collection safety rules.
 - Diagnostic index now documents the baseline collector and its secret-avoidance behavior.
+- Baseline storage collection skips the potentially expensive top-level `du /` scan; the focused storage diagnostic retains the deeper directory-size scan.
 - Package installation path was hardened for both root shells and non-root sessions using `sudo` where required.
 
 ## v0.3.0 - 2026-08-16

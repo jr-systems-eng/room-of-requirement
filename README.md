@@ -2,7 +2,7 @@
 
 > **Always equipped for the seeker's needs.**
 
-A portable engineering toolbox for unfamiliar systems: quick references, diagnostics, reusable scripts, templates, dotfiles, runbooks, and bootstrap helpers that can travel with you from machine to machine.
+A portable engineering toolbox for unfamiliar systems: quick references, diagnostics, reusable scripts, templates, managed dotfiles, runbooks, and bootstrap helpers that can travel with you from machine to machine.
 
 ## I need to...
 
@@ -10,15 +10,16 @@ A portable engineering toolbox for unfamiliar systems: quick references, diagnos
 |---|---|
 | Quickly assess an unfamiliar host | `ror doctor` |
 | Capture a general-purpose handoff bundle | `ror collect baseline` |
+| Prepare an admin/jumpbox toolset | `ror pkg suggest linux-admin` |
+| Review portable shell/tool config | `ror dotfiles diff all` |
 | Remember a command or concept | [`cheat-sheets/`](cheat-sheets/README.md) |
 | Copy/paste a reusable fragment | [`snippets/`](snippets/README.md) |
 | Collect targeted troubleshooting evidence | [`scripts/diagnostics/`](scripts/diagnostics/README.md) |
-| Run a complete utility | [`scripts/`](scripts/) |
 | Follow a safe troubleshooting procedure | [`docs/runbooks/`](docs/runbooks/README.md) |
 | Create something from a known-good starting point | [`templates/`](templates/README.md) |
-| Configure my shell/tools | [`dotfiles/`](dotfiles/) |
-| Set up ROR on a new machine | [`bootstrap/`](bootstrap/) |
-| Keep machine-specific state | [`local/`](local/README.md) |
+| Set up a portable workstation/jumpbox | [`docs/setup/portable-workstation.md`](docs/setup/portable-workstation.md) |
+| Set up ROR on a new machine | [`bootstrap/`](bootstrap/README.md) |
+| Keep repository-local machine state | [`local/`](local/README.md) |
 
 ## The `ror` command
 
@@ -32,7 +33,7 @@ ror doctor --install-suggestions
 ror collect baseline
 ```
 
-`ror doctor` summarizes platform/tooling information and highlights common host-health signals such as root-filesystem pressure, Linux memory pressure, failed systemd units, time synchronization, firewall/MAC visibility, proxy presence, and reboot status.
+`ror doctor` summarizes platform/tooling information and highlights common host-health signals such as root-filesystem pressure, Linux memory pressure, failed systemd units, time synchronization, firewall/MAC visibility, proxy presence, reboot status, and managed-dotfile state.
 
 `ror collect baseline` creates a timestamped, read-only intake report combining system, network, storage, resolver, security, time-sync, service, journal, kernel-package, and reboot context. It avoids dumping process environments and reports only the presence of proxy variables rather than their values.
 
@@ -66,14 +67,74 @@ Save the same diagnostic output as a timestamped handoff file:
 
 ```bash
 ror collect baseline
-ror collect system
 ror collect systemd sshd
 ror collect tls example.com:443
 ```
 
 Diagnostics are read-only by contract. Collection files are written to the current directory unless `ROR_COLLECT_OUTPUT` is set.
 
-### Reuse
+## Portable environment setup
+
+### Package profiles
+
+```bash
+ror pkg list
+ror pkg suggest linux-admin
+ror pkg install linux-admin
+```
+
+Current profiles:
+
+| Profile | Intent |
+|---|---|
+| `minimal` | Git, curl, jq |
+| `troubleshooting` | General host/incident troubleshooting |
+| `networking` | DNS/TCP/TLS/packet/path troubleshooting |
+| `linux-admin` | Broad Linux admin/jumpbox toolkit |
+| `development` | Git/Python/terminal development basics |
+| `ansible` | Distro-packaged Ansible control-node basics |
+| `containers` | Container prerequisites/runtime where portable |
+| `kubernetes` | Common prerequisites; kubectl/helm reported separately |
+| `cloud` | Common prerequisites; gcloud/govc reported separately |
+
+`pkg suggest` is read-only. `pkg install` is explicit and mutating. Package names are translated where needed (for example `dig` -> `bind-utils` on DNF systems and `dnsutils` on APT systems).
+
+Vendor/platform-specific tools that cannot be installed portably are reported separately rather than silently guessed.
+
+### Managed dotfiles
+
+Review first:
+
+```bash
+ror dotfiles status
+ror dotfiles diff all
+ror dotfiles diff bash
+```
+
+Install explicitly:
+
+```bash
+ror dotfiles install bash
+ror dotfiles install git
+ror dotfiles install tmux
+ror dotfiles install all
+```
+
+ROR does **not** replace entire existing config files. It installs managed fragments under `~/.config/ror/` and adds small marked include/source blocks to the host's Bash/Readline/Git/tmux/PowerShell configuration.
+
+Every install creates a rollback snapshot first:
+
+```bash
+ror dotfiles backups
+ror dotfiles restore latest
+ror dotfiles restore <backup-id>
+```
+
+Git identity, credentials, SSH keys/config, and machine-specific private settings are intentionally not managed automatically.
+
+See [Dotfiles](dotfiles/README.md) and [Portable Workstation Setup](docs/setup/portable-workstation.md).
+
+## Reuse
 
 ```bash
 ror new ansible/playbook.yml ./playbook.yml
@@ -84,44 +145,45 @@ ror new systemd/timer.timer ./myapp.timer
 
 `ror new` refuses to overwrite an existing destination.
 
-### Portable tool bundles
+## Bootstrap
 
-```bash
-ror pkg list
-ror pkg suggest troubleshooting
-ror pkg suggest networking
-ror pkg install troubleshooting
-```
+### Linux/macOS/WSL
 
-`pkg suggest` is read-only. `pkg install` is an explicit mutating action and translates common tool names across supported package managers where required. Package installation works from a root shell directly or through `sudo` when needed.
-
-### Repository maintenance
-
-```bash
-ror dotfiles status
-ror update
-```
-
-`ror update` refuses to pull when the ROR working tree is dirty and uses fast-forward-only Git updates.
-
-## Bootstrap on Linux/macOS/WSL
+Safe default:
 
 ```bash
 git clone <this-repository>
 cd room-of-requirement
 bash bootstrap/install.sh
-ror doctor --install-suggestions
 ```
 
-## Bootstrap on Windows
+Explicit workstation setup can be combined when desired:
 
-Run from PowerShell after cloning:
+```bash
+bash bootstrap/install.sh \
+  --profile linux-admin \
+  --dotfiles bash \
+  --dotfiles git \
+  --dotfiles tmux
+```
+
+### Windows
+
+From PowerShell after cloning:
 
 ```powershell
 .\bootstrap\install.ps1
 ```
 
-The current Windows wrapper uses Bash (for example Git Bash or WSL) to run the shared `ror` implementation.
+Or explicitly request setup:
+
+```powershell
+.\bootstrap\install.ps1 -PackageProfile linux-admin -Dotfiles bash,git
+```
+
+The Windows wrapper uses an available Bash environment such as Git Bash or WSL for the shared ROR CLI.
+
+Plain bootstrap never silently installs packages or dotfiles.
 
 ## Current diagnostic targets
 
@@ -147,12 +209,14 @@ Changes on `main` are guarded by GitHub Actions checks for:
 - local Markdown-link validation
 - PowerShell parsing
 - ROR CLI smoke tests on Linux and Windows runners
+- isolated dotfile install/restore lifecycle tests on Linux and Windows runners
 - full-history secret scanning
 
 The local smoke suite can also be run manually:
 
 ```bash
 bash tests/smoke/ror-smoke.sh
+bash tests/smoke/dotfiles-smoke.sh
 python3 tests/validate_markdown_links.py
 ```
 
@@ -161,12 +225,12 @@ See [`tests/`](tests/README.md) for the validation contract.
 ## Design principles
 
 - **Portable:** resources should not depend on the machine where they were authored.
-- **Safe:** diagnostics and discovery are read-only by default.
+- **Safe:** diagnostics/discovery are read-only by default; mutations are explicit and reversible where practical.
 - **OS-aware:** platform-specific behavior belongs behind common interfaces.
-- **Local stays local:** secrets and machine-specific state belong under `local/`, never Git.
+- **Local stays local:** secrets and machine-specific settings are not committed.
 - **Discoverable:** `ror find` should locate useful material across resource types.
 - **Reusable:** capture procedures and patterns once rather than reconstructing them during every incident.
-- **Trustworthy:** automated validation should catch portability, syntax, link, and secret-leak regressions before they become normal tooling.
+- **Trustworthy:** automated validation should catch portability, syntax, link, rollback, and secret-leak regressions before they become normal tooling.
 
 See [Philosophy](docs/philosophy.md) and [Architecture](docs/architecture.md) for the repository contracts and design model.
 
@@ -177,6 +241,9 @@ See [Philosophy](docs/philosophy.md) and [Architecture](docs/architecture.md) fo
 - [Diagnostics](scripts/diagnostics/README.md)
 - [Runbooks](docs/runbooks/README.md)
 - [Templates](templates/README.md)
+- [Dotfiles](dotfiles/README.md)
+- [Portable Workstation Setup](docs/setup/portable-workstation.md)
+- [Bootstrap](bootstrap/README.md)
 - [Tests](tests/README.md)
 - [Architecture](docs/architecture.md)
 - [Philosophy](docs/philosophy.md)

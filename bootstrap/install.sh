@@ -3,17 +3,21 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BIN_DIR="${HOME}/.local/bin"
+WRAPPER="$BIN_DIR/ror"
 
 mkdir -p "$BIN_DIR"
-chmod +x "$ROOT/bin/ror"
-find "$ROOT/scripts" -type f -name '*.sh' -exec chmod +x {} + 2>/dev/null || true
-ln -sfn "$ROOT/bin/ror" "$BIN_DIR/ror"
+
+cat > "$WRAPPER" <<EOF
+#!/usr/bin/env bash
+exec bash "$ROOT/bin/ror" "\$@"
+EOF
+chmod +x "$WRAPPER"
 
 cat <<EOF
 Room of Requirement installed.
 
 Repository: $ROOT
-Command:    $BIN_DIR/ror
+Command:    $WRAPPER
 
 If $BIN_DIR is not already in PATH, add this to your shell profile:
   export PATH="\$HOME/.local/bin:\$PATH"

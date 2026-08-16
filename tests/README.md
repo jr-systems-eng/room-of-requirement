@@ -1,16 +1,34 @@
 # Tests
 
-Room of Requirement tests protect the portability and safety promises of the repository.
+Room of Requirement tests protect the portability, rollback, and safety promises of the repository.
 
-## Smoke tests
+## CLI smoke tests
 
-Run the CLI smoke suite with:
+Run the general CLI smoke suite with:
 
 ```bash
 bash tests/smoke/ror-smoke.sh
 ```
 
-The smoke suite checks core discovery, reference, package, diagnostic, and collection interfaces without intentionally changing system configuration.
+It checks core discovery, reference, package-profile, diagnostic, collection, and read-only dotfile interfaces without intentionally changing system configuration.
+
+## Dotfile lifecycle smoke tests
+
+Run the managed-dotfile round-trip suite with:
+
+```bash
+bash tests/smoke/dotfiles-smoke.sh
+```
+
+This suite creates a disposable temporary `HOME` and state directory, then verifies that Bash/Readline, Git, and tmux managed fragments can be installed and restored safely. It checks that:
+
+- existing host files receive the expected marked include/source blocks;
+- managed fragments match the repository sources;
+- rollback restores original host files exactly;
+- managed files that did not exist before installation are removed on restore;
+- backup snapshots remain discoverable after rollback.
+
+The test never intentionally modifies the real user or CI-runner home configuration.
 
 ## Markdown links
 
@@ -24,4 +42,4 @@ Only local repository links are checked. External URLs are deliberately not fetc
 
 ## CI
 
-GitHub Actions additionally checks shell syntax, ShellCheck findings, YAML, JSON, PowerShell parsing, smoke tests, and secret scanning.
+GitHub Actions additionally checks shell syntax, error-level ShellCheck findings, YAML, JSON, PowerShell parsing, Ubuntu/Windows CLI smoke tests, Ubuntu/Windows dotfile lifecycle tests, and full-history secret scanning.

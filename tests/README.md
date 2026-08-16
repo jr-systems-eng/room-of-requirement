@@ -1,6 +1,6 @@
 # Tests
 
-Room of Requirement tests protect the portability, rollback, and safety promises of the repository.
+Room of Requirement tests protect the portability, rollback, discovery, and safety promises of the repository.
 
 ## CLI smoke tests
 
@@ -11,6 +11,14 @@ bash tests/smoke/ror-smoke.sh
 ```
 
 It checks core discovery, reference, package-profile, diagnostic, collection, and read-only dotfile interfaces without intentionally changing system configuration.
+
+Phase 5 smoke coverage also verifies:
+
+- curated `ror need` topic listing;
+- topic aliasing such as `certificate` -> `tls`;
+- expected related-resource output for curated topics;
+- the package-profile list line structure;
+- portable `SUMMARY` sections from DNS and Java diagnostics.
 
 ## Dotfile lifecycle smoke tests
 

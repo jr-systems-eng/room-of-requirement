@@ -13,10 +13,10 @@ Room of Requirement is organized by **how a resource is used**, not by the machi
 | `snippets/` | Paste-ready fragments: "Give me the reusable few lines." |
 | `scripts/` | Complete utilities that perform one defined task. |
 | `templates/` | Known-good starting files for creating something new. |
-| `dotfiles/` | Portable shell/tool configuration defaults. |
+| `dotfiles/` | Portable managed shell/tool configuration fragments. |
 | `docs/` | Explanations, architecture, setup notes, and runbooks. |
 | `tests/` | Portability, syntax, smoke, and repository-integrity validation. |
-| `local/` | Machine-specific state. Never committed. |
+| `local/` | Repository-local machine state. Never committed. |
 
 ## Resource decision rule
 
@@ -34,7 +34,7 @@ Diagnostics and discovery are read-only by default. Mutating operations are expl
 
 `ror collect baseline` is the broadest collector. It combines existing system/network/storage/DNS collectors with security-mode visibility, firewall state, time synchronization, failed services, recent warning-or-higher journal output, kernel-package information, and reboot state. Proxy variables are reported only as present/not-present; their values are not emitted.
 
-`ror pkg install` is intentionally explicit. `ror doctor --install-suggestions` and `ror pkg suggest` only report what would be installed.
+`ror pkg install` and `ror dotfiles install` are intentionally explicit mutations. `ror doctor --install-suggestions`, `ror pkg suggest`, `ror dotfiles status`, and `ror dotfiles diff` remain read-only.
 
 ## Trust model
 
@@ -42,10 +42,12 @@ The default branch is expected to remain usable as a portable toolbox. GitHub Ac
 
 1. **Parse/static checks** — Bash syntax, error-level ShellCheck, YAML, JSON, and PowerShell parsing.
 2. **Repository integrity** — local Markdown links must resolve.
-3. **Behavioral smoke tests** — core `ror` discovery, reference, diagnostics, and collection operations are exercised on Linux and Windows runners.
+3. **Behavioral smoke tests** — core `ror` discovery, reference, diagnostics, collection, package-profile, and dotfile lifecycle operations are exercised on Linux and Windows runners.
 4. **Secret scanning** — full Git history is scanned for likely committed secrets.
 
 Tests live under `tests/` so most validation can also be run locally rather than existing only inside CI.
+
+The dotfile lifecycle smoke test uses a disposable HOME and verifies install/restore round trips without touching the runner's real configuration.
 
 The initial ShellCheck gate intentionally blocks error-severity findings first. The lint bar can be tightened later as the existing script library is normalized.
 
@@ -63,6 +65,7 @@ Current health signals include:
 - firewall visibility
 - proxy presence without printing proxy values
 - reboot-required visibility when the platform exposes it
+- managed-dotfile status
 
 Doctor findings are advisory. A warning identifies something worth reviewing; it is not automatically a diagnosis.
 
@@ -71,6 +74,63 @@ Doctor findings are advisory. A warning identifies something worth reviewing; it
 The repository exposes common user-facing operations while allowing platform-specific implementations underneath. OS support should be detected centrally through `lib/os.sh` rather than reimplemented independently in each script.
 
 Package/tool naming differences belong in `lib/packages.sh`. For example, the user-facing tool `dig` maps to `bind-utils` on DNF-family systems and `dnsutils` on APT-family systems.
+
+Dotfile lifecycle behavior belongs in `lib/dotfiles.sh` rather than being reimplemented in bootstrap or individual shell profiles.
+
+## Package profile model
+
+Package profiles represent **capabilities**, not exact package lists. The current named profiles are:
+
+- `minimal` — Git, curl, and jq.
+- `troubleshooting` — general incident/host troubleshooting.
+- `networking` — DNS, TCP, TLS, packet, and path troubleshooting.
+- `linux-admin` — broad Linux administration/jumpbox toolkit.
+- `development` — Git/Python/terminal development basics.
+- `ansible` — distro-packaged Ansible control-node basics.
+- `containers` — package-managed container prerequisites/runtime where sensible.
+- `kubernetes` — common prerequisites; kubectl/helm remain explicit external tools.
+- `cloud` — common prerequisites; gcloud/govc remain explicit external tools.
+
+A profile may contain two classes of dependency:
+
+1. **Package-managed items** — ROR can translate/install these through the detected package manager.
+2. **External/vendor-specific tools** — ROR reports these when missing but does not pretend their installation is portable across every OS/repository configuration.
+
+Single tool/package requests remain supported for backward compatibility.
+
+## Dotfile model
+
+ROR uses **managed fragments plus host include/source blocks**, not wholesale replacement.
+
+Managed files live under:
+
+```text
+~/.config/ror/
+```
+
+Host integration is deliberately small and marked:
+
+```text
+# >>> ROR managed <group> >>>
+...
+# <<< ROR managed <group> <<<
+```
+
+Current groups are Bash/Readline, Git, tmux, and PowerShell when supported.
+
+Before an install, every touched file is copied into a timestamped snapshot under:
+
+```text
+${XDG_STATE_HOME:-~/.local/state}/ror/dotfiles-backups/
+```
+
+`ROR_STATE_HOME` can override the state path for testing/special environments.
+
+`ror dotfiles restore` restores files that existed before installation and removes managed files that were created by that installation. Backups remain after restore so rollback is repeatable/auditable.
+
+Machine-specific Bash and PowerShell customization belongs under `~/.config/ror/local/` and is not written by the managed install.
+
+Git identity, credentials, SSH private keys, host-specific SSH config, and Bash login-profile replacement are intentionally outside the automatic dotfile lifecycle.
 
 ## CLI model
 
@@ -87,8 +147,12 @@ ror diagnose <target> [args...]
 ror collect <target> [args...]
 ror run <script> [args...]
 ror new <template> <destination>
-ror pkg list|suggest|install [bundle-or-package]
+ror pkg list|suggest|install [profile-or-package]
 ror dotfiles status
+ror dotfiles diff [group|all]
+ror dotfiles install <group|all>
+ror dotfiles backups
+ror dotfiles restore [latest|backup-id]
 ror update
 ```
 
@@ -104,15 +168,13 @@ ror-collect-<target>-<host>-<timestamp>.txt
 
 Set `ROR_COLLECT_OUTPUT` when a specific output path is required. Generated default collection files are ignored by Git so running a collector from the repository directory does not dirty the working tree.
 
-## Package bundles
+## Bootstrap model
 
-The first portable bundles are:
+Plain bootstrap installs only the ROR command wrapper and performs a read-only doctor check. Package profiles and dotfiles can be combined with bootstrap only through explicit flags/parameters.
 
-- `troubleshooting` — curl, wget, jq, lsof, strace, tcpdump, DNS/TCP tools, OpenSSL, Git, tmux.
-- `networking` — curl, jq, packet/DNS/TCP/TLS/path tools.
-- `development` — Git, curl, jq, Python 3, tmux.
+This preserves one invariant: **cloning/bootstrap alone must not silently reconfigure a machine.**
 
-The abstraction is intentionally small; add mappings only when they are useful on more than one machine or platform.
+See [`docs/setup/portable-workstation.md`](setup/portable-workstation.md) for the intended end-to-end workflow.
 
 ## Growth rule
 

@@ -1,0 +1,22 @@
+[Unit]
+Description=Example service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=example
+Group=example
+WorkingDirectory=/opt/example
+ExecStart=/opt/example/bin/example
+Restart=on-failure
+RestartSec=5
+
+# Basic hardening; review for compatibility with the application.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

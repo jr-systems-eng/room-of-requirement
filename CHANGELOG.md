@@ -2,6 +2,44 @@
 
 Notable changes to Room of Requirement are recorded here. The project uses the changelog to track capability-level changes rather than every individual file edit.
 
+## v0.4.0 - 2026-08-16
+
+### Added
+
+- Phase 3 trust and portability layer.
+- `ror collect baseline` / `ror diagnose baseline` general-purpose host intake collector combining:
+  - system, network, storage, and resolver state
+  - SELinux/AppArmor visibility
+  - firewall visibility
+  - time synchronization state
+  - failed systemd units
+  - recent warning-or-higher journal entries
+  - installed kernel-package context
+  - reboot-required visibility
+  - proxy-variable presence without exposing proxy values
+- Expanded `ror doctor` host-health signals for root-filesystem pressure, Linux memory pressure, failed systemd units, time synchronization, MAC/firewall visibility, proxy presence, and reboot state.
+- `tests/` validation area with:
+  - CLI smoke tests
+  - deterministic local Markdown-link validation
+  - test/validation documentation
+- GitHub Actions validation workflow covering:
+  - Bash syntax
+  - error-level ShellCheck findings
+  - YAML validation
+  - JSON validation
+  - local Markdown links
+  - PowerShell parsing
+  - Linux and Windows ROR smoke tests
+  - full-history Gitleaks secret scanning
+- YAML lint configuration for repository-wide CI validation.
+
+### Changed
+
+- README now presents `ror doctor` and `ror collect baseline` as the recommended first-look workflow for unfamiliar machines.
+- Architecture documentation now defines the repository trust model, test contract, doctor model, and baseline collection safety rules.
+- Diagnostic index now documents the baseline collector and its secret-avoidance behavior.
+- Package installation path was hardened for both root shells and non-root sessions using `sudo` where required.
+
 ## v0.3.0 - 2026-08-16
 
 ### Added

@@ -21,7 +21,9 @@ Use them directly with `ror run`, through the friendlier `ror diagnose` aliases,
 
 `ror collect baseline` is the general-purpose first look at an unfamiliar host. It combines system, network, storage, and resolver state with security-mode visibility, firewall state, time synchronization, failed services, recent warning-or-higher journal entries, kernel package information, and reboot status.
 
-It intentionally reports only whether common proxy variables are present rather than printing their values. Process environment blocks are also excluded because they commonly contain credentials and tokens.
+The baseline path deliberately skips the potentially expensive top-level `du /` scan. Use `ror diagnose storage` when the deeper directory-size scan is appropriate.
+
+The baseline intentionally reports only whether common proxy variables are present rather than printing their values. Process environment blocks are also excluded because they commonly contain credentials and tokens.
 
 ## Collection files
 

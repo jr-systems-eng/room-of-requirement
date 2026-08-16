@@ -52,16 +52,75 @@ ror_missing_bundle_packages() {
   done < <(ror_bundle_tools "$bundle")
 }
 
+ror_privilege_prefix() {
+  if [ "$(id -u 2>/dev/null || printf 1)" -eq 0 ]; then
+    printf '\n'
+  elif command -v sudo >/dev/null 2>&1; then
+    printf 'sudo\n'
+  else
+    return 1
+  fi
+}
+
 ror_install_command() {
-  local manager="$1"; shift
+  local manager="$1" prefix
+  shift
   [ "$#" -gt 0 ] || return 0
+  prefix="$(ror_privilege_prefix 2>/dev/null || true)"
+
   case "$manager" in
-    dnf) printf 'sudo dnf install -y'; printf ' %q' "$@"; printf '\n' ;;
-    apt) printf 'sudo apt-get update && sudo apt-get install -y'; printf ' %q' "$@"; printf '\n' ;;
-    zypper) printf 'sudo zypper install -y'; printf ' %q' "$@"; printf '\n' ;;
-    pacman) printf 'sudo pacman -S --needed'; printf ' %q' "$@"; printf '\n' ;;
+    dnf)
+      [ -n "$prefix" ] && printf '%s ' "$prefix"
+      printf 'dnf install -y'; printf ' %q' "$@"; printf '\n'
+      ;;
+    apt)
+      [ -n "$prefix" ] && printf '%s ' "$prefix"
+      printf 'apt-get update && '
+      [ -n "$prefix" ] && printf '%s ' "$prefix"
+      printf 'apt-get install -y'; printf ' %q' "$@"; printf '\n'
+      ;;
+    zypper)
+      [ -n "$prefix" ] && printf '%s ' "$prefix"
+      printf 'zypper install -y'; printf ' %q' "$@"; printf '\n'
+      ;;
+    pacman)
+      [ -n "$prefix" ] && printf '%s ' "$prefix"
+      printf 'pacman -S --needed'; printf ' %q' "$@"; printf '\n'
+      ;;
     brew) printf 'brew install'; printf ' %q' "$@"; printf '\n' ;;
     winget) printf 'winget install'; printf ' %q' "$@"; printf '\n' ;;
     *) printf '# No supported package manager detected\n' ;;
+  esac
+}
+
+ror_install_packages() {
+  local manager="$1" prefix
+  shift
+  [ "$#" -gt 0 ] || return 0
+  prefix="$(ror_privilege_prefix 2>/dev/null || true)"
+
+  case "$manager" in
+    dnf)
+      if [ -n "$prefix" ]; then sudo dnf install -y "$@"; else dnf install -y "$@"; fi
+      ;;
+    apt)
+      if [ -n "$prefix" ]; then
+        sudo apt-get update && sudo apt-get install -y "$@"
+      else
+        apt-get update && apt-get install -y "$@"
+      fi
+      ;;
+    zypper)
+      if [ -n "$prefix" ]; then sudo zypper install -y "$@"; else zypper install -y "$@"; fi
+      ;;
+    pacman)
+      if [ -n "$prefix" ]; then sudo pacman -S --needed "$@"; else pacman -S --needed "$@"; fi
+      ;;
+    brew) brew install "$@" ;;
+    winget)
+      local package
+      for package in "$@"; do winget install "$package" || return $?; done
+      ;;
+    *) return 2 ;;
   esac
 }

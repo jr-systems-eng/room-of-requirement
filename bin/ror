@@ -1,2 +1,169 @@
 #!/usr/bin/env bash
-echo "ror command placeholder"
+set -u
+
+SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROR_HOME="$(cd "$SELF_DIR/.." && pwd)"
+export ROR_HOME
+
+# shellcheck source=../lib/common.sh
+. "$ROR_HOME/lib/common.sh"
+# shellcheck source=../lib/os.sh
+. "$ROR_HOME/lib/os.sh"
+# shellcheck source=../lib/network.sh
+. "$ROR_HOME/lib/network.sh"
+# shellcheck source=../lib/logging.sh
+. "$ROR_HOME/lib/logging.sh"
+
+usage() {
+  cat <<'EOF'
+Room of Requirement (ror)
+
+Usage:
+  ror help
+  ror doctor
+  ror info
+  ror find <term>
+  ror cheat <term>
+  ror run <script> [args...]
+  ror new <template> <destination>
+  ror update
+
+Examples:
+  ror doctor
+  ror find ssh
+  ror cheat subnetting
+  ror run diagnostics/system-info.sh
+  ror new systemd/service.service ./myapp.service
+EOF
+}
+
+cmd_info() {
+  ror_detect_os
+  printf 'ROR_HOME=%s\n' "$ROR_HOME"
+  printf 'OS=%s\n' "$ROR_OS"
+  printf 'OS_FAMILY=%s\n' "$ROR_OS_FAMILY"
+  printf 'ARCH=%s\n' "$ROR_ARCH"
+  printf 'WSL=%s\n' "$ROR_WSL"
+}
+
+check_tool() {
+  local tool="$1"
+  if ror_have "$tool"; then
+    printf '  %-12s %s\n' "$tool" 'yes'
+  else
+    printf '  %-12s %s\n' "$tool" 'no'
+  fi
+}
+
+cmd_doctor() {
+  ror_detect_os
+  printf 'Room of Requirement\n'
+  ror_hr
+  printf 'Home:       %s\n' "$ROR_HOME"
+  printf 'OS:         %s (%s)\n' "$ROR_OS" "$ROR_OS_FAMILY"
+  printf 'Arch:       %s\n' "$ROR_ARCH"
+  printf 'WSL:        %s\n' "$ROR_WSL"
+  printf 'Shell:      %s\n' "${SHELL:-unknown}"
+  printf 'User:       %s\n' "$(id -un 2>/dev/null || printf unknown)"
+  printf 'sudo:       %s\n' "$(ror_yesno command -v sudo)"
+  printf 'Primary IP: %s\n' "$(ror_primary_ip || true)"
+  printf 'Gateway:    %s\n' "$(ror_default_gateway || true)"
+
+  printf '\nTools\n'
+  ror_hr
+  for tool in git curl wget jq dig openssl ssh python3 ansible docker kubectl govc; do
+    check_tool "$tool"
+  done
+
+  printf '\nRepository\n'
+  ror_hr
+  if ror_have git && git -C "$ROR_HOME" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    printf '  branch       %s\n' "$(git -C "$ROR_HOME" branch --show-current 2>/dev/null || true)"
+    if [ -n "$(git -C "$ROR_HOME" status --porcelain 2>/dev/null)" ]; then
+      printf '  worktree     dirty\n'
+    else
+      printf '  worktree     clean\n'
+    fi
+    printf '  commit       %s\n' "$(git -C "$ROR_HOME" rev-parse --short HEAD 2>/dev/null || true)"
+  else
+    printf '  git metadata unavailable\n'
+  fi
+}
+
+cmd_find() {
+  local term="${1:-}"
+  [ -n "$term" ] || ror_die 'find requires a search term'
+  if ror_have grep; then
+    find "$ROR_HOME/cheat-sheets" "$ROR_HOME/snippets" "$ROR_HOME/scripts" "$ROR_HOME/templates" "$ROR_HOME/docs" \
+      -type f 2>/dev/null | grep -i -- "$term" || true
+    grep -RIl --exclude-dir=.git -- "$term" \
+      "$ROR_HOME/cheat-sheets" "$ROR_HOME/snippets" "$ROR_HOME/scripts" "$ROR_HOME/templates" "$ROR_HOME/docs" 2>/dev/null || true
+  else
+    ror_die 'grep is required for search'
+  fi | sed "s#^$ROR_HOME/##" | sort -u
+}
+
+cmd_cheat() {
+  local term="${1:-}"
+  [ -n "$term" ] || ror_die 'cheat requires a search term'
+  local matches
+  matches="$(find "$ROR_HOME/cheat-sheets" -type f -name '*.md' 2>/dev/null | grep -i -- "$term" || true)"
+  if [ -z "$matches" ]; then
+    matches="$(grep -RIl --include='*.md' -- "$term" "$ROR_HOME/cheat-sheets" 2>/dev/null || true)"
+  fi
+  [ -n "$matches" ] || ror_die "no cheat sheet matched: $term"
+
+  local count
+  count="$(printf '%s\n' "$matches" | sed '/^$/d' | wc -l | tr -d ' ')"
+  if [ "$count" -eq 1 ]; then
+    ${PAGER:-cat} "$matches"
+  else
+    printf '%s\n' "$matches" | sed "s#^$ROR_HOME/##"
+  fi
+}
+
+cmd_run() {
+  local target="${1:-}"
+  [ -n "$target" ] || ror_die 'run requires a script path under scripts/'
+  shift || true
+  target="${target#scripts/}"
+  local path="$ROR_HOME/scripts/$target"
+  [ -f "$path" ] || ror_die "script not found: scripts/$target"
+  case "$path" in
+    *.sh) bash "$path" "$@" ;;
+    *.py) python3 "$path" "$@" ;;
+    *.ps1) pwsh -File "$path" "$@" ;;
+    *) "$path" "$@" ;;
+  esac
+}
+
+cmd_new() {
+  local template="${1:-}"
+  local destination="${2:-}"
+  [ -n "$template" ] && [ -n "$destination" ] || ror_die 'new requires <template> <destination>'
+  template="${template#templates/}"
+  local source="$ROR_HOME/templates/$template"
+  [ -f "$source" ] || ror_die "template not found: templates/$template"
+  [ ! -e "$destination" ] || ror_die "destination already exists: $destination"
+  mkdir -p "$(dirname "$destination")"
+  cp "$source" "$destination"
+  printf 'Created %s from %s\n' "$destination" "templates/$template"
+}
+
+cmd_update() {
+  ror_have git || ror_die 'git is required for update'
+  [ -z "$(git -C "$ROR_HOME" status --porcelain)" ] || ror_die 'working tree is not clean; refusing to update'
+  git -C "$ROR_HOME" pull --ff-only
+}
+
+case "${1:-help}" in
+  help|-h|--help) usage ;;
+  doctor) cmd_doctor ;;
+  info) cmd_info ;;
+  find) shift; cmd_find "$@" ;;
+  cheat) shift; cmd_cheat "$@" ;;
+  run) shift; cmd_run "$@" ;;
+  new) shift; cmd_new "$@" ;;
+  update) cmd_update ;;
+  *) usage; exit 1 ;;
+esac

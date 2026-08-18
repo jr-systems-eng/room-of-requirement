@@ -2,6 +2,52 @@
 
 Notable changes to Room of Requirement are recorded here. The project uses the changelog to track capability-level changes rather than every individual file edit.
 
+## v0.8.0 - 2026-08-18
+
+### Added
+
+- Phase 7 Operational Toolkit.
+- Metadata-backed Room relationship model under `config/room/`:
+  - `topics.tsv` for canonical topics, aliases, descriptions, and related rooms
+  - `actions.tsv` for ordered **Start here** and follow-up commands
+  - `resources.tsv` for typed repository-resource relationships
+- `config/room/README.md` documenting the runtime/authoring contract.
+- `tests/validate_room_metadata.py` validating topic/alias uniqueness, related-room references, action/resource ownership, safe relative paths, resource existence, duplicates, and minimum topic coverage.
+- `ror path room` and Room metadata location in `ror info`.
+- `ror need` **Start here**, **Next actions**, and **Related rooms** output.
+- New read-only diagnostics:
+  - `ror diagnose performance`
+  - `ror diagnose nfs [server]`
+  - `ror diagnose docker`
+  - `ror diagnose kubernetes [namespace]`
+- New operational utilities:
+  - `scripts/system/port-process.sh`
+  - `scripts/networking/cert-expiry.sh`
+  - `scripts/git/repo-health.sh`
+  - `scripts/kubernetes/workload-summary.sh`
+- `scripts/README.md` as the operational script index.
+- CI Room-metadata integrity validation and expanded cross-platform smoke coverage.
+
+### Changed
+
+- `lib/resources.sh` is now a generic metadata reader instead of a growing topic-specific shell `case` map.
+- Topic knowledge/aliases/actions/resource paths are maintained as data under `config/room/`.
+- `ror diagnose` / `ror collect` now recognize NFS, performance, Docker/container, and Kubernetes targets.
+- Performance Room now starts with the dedicated performance diagnostic.
+- NFS Room now starts with the dedicated NFS diagnostic.
+- Containers and Kubernetes Rooms now surface runtime diagnostics in addition to references/templates.
+- Network/TLS/Git/Kubernetes Rooms now surface the new narrow operational utilities where appropriate.
+- Architecture, root README, diagnostics/tests/resource-authoring documentation now define the metadata graph and Operational Toolkit contracts.
+- Previously scaffold-only `scripts/system`, `scripts/networking`, `scripts/git`, and `scripts/kubernetes` directories now contain real utilities and no longer require `.gitkeep` placeholders.
+
+### Safety
+
+- Docker diagnostics intentionally avoid container environment dumps and broad inspection of secret-bearing runtime fields.
+- Kubernetes diagnostics/utilities do not read Secret objects or print raw kubeconfig contents.
+- Git repository health intentionally omits remote URLs because URLs can contain embedded credentials/tokens.
+- Certificate expiry checks inspect only the presented leaf certificate and use a nonzero status for warning/expired windows without modifying trust/configuration.
+- Related rooms are navigational relationships, not causal diagnosis; `ror need` remains deterministic, read-only, and never auto-executes suggested commands.
+
 ## v0.7.0 - 2026-08-18
 
 ### Added

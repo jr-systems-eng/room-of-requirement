@@ -1,0 +1,32 @@
+# topic|aliases(comma-separated)|description|related topics(comma-separated)
+ssh|sshd,sftp|SSH/SFTP connectivity, authentication, daemon state, and crypto negotiation.|network,systemd
+
+tls|ssl,cert,certs,certificate,certificates,openssl|TLS handshakes, certificate names, expiry, chain verification, and trust troubleshooting.|dns,network,java
+
+dns|resolver,resolution|Resolver configuration, name resolution, DNS responses, and lookup troubleshooting.|network,tls
+
+network|networking,connectivity,route,routing|Host networking, routes, listeners, DNS context, and general connectivity.|dns,tls,ssh
+
+systemd|systemctl,service,services,journal,journalctl|systemd service state, unit configuration, exit status, and journal troubleshooting.|performance,tomcat
+
+storage|disk,disks,filesystem,filesystems,fs,lvm|Filesystem capacity, mounts, LVM, inodes, large paths, deleted-open files, and safe capacity growth.|performance,nfs
+
+nfs|nfs4,nfsv4|NFSv4 server exports, client mounts, persistence, permissions, and connectivity.|network,storage
+
+performance|perf,load,cpu,memory,swap,pressure|Linux load, CPU, memory, swap, blocked tasks, and evidence-driven performance triage.|storage,systemd,tomcat
+
+java|jvm,pkix,truststore,truststores,keystore,keystores|Java/JVM process inspection, keystores, PKIX trust failures, and runtime context.|tls,tomcat,performance
+
+tomcat|catalina|Tomcat startup, service/process/log inspection, Java, and PKIX follow-through.|systemd,java,tls,performance
+
+kubernetes|k8s,kubectl|Kubernetes context, cluster/workload health, kubectl workflows, and reusable workload/network/storage starting points.|containers,network,performance
+
+ansible||Ansible execution reference plus inventory, playbook, rolling-change, and audit starting points.|git,github
+
+containers|container,docker,compose,podman|Docker/Compose runtime health, workflows, and reusable container build/runtime starting points.|kubernetes,network,performance
+
+terraform|tf,iac|Portable Terraform module starting points and infrastructure-as-code discovery.|github,git
+
+github|gha,actions,workflow,workflows|Reusable GitHub Actions workflows and pull-request review scaffolding.|git,ansible
+
+git||Everyday Git reference, repository health, snippets, and portable Git configuration.|github

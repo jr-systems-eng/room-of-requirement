@@ -1,0 +1,64 @@
+# topic|command (first command is shown as Start here)
+ssh|ror diagnose ssh
+ssh|ror collect ssh
+ssh|ror find --type runbook ssh
+
+tls|ror diagnose tls host.example.com:443
+tls|ror collect tls host.example.com:443
+tls|ror find --type runbook certificate
+
+dns|ror diagnose dns host.example.com
+dns|ror find --type runbook dns
+dns|ror need network
+
+network|ror diagnose network
+network|ror collect network
+network|ror run system/port-process.sh <port>
+
+systemd|ror diagnose systemd <service>
+systemd|ror collect systemd <service>
+systemd|ror find --type runbook systemd
+
+storage|ror diagnose storage
+storage|ror collect storage
+storage|ror find --type runbook lvm
+
+nfs|ror diagnose nfs [server]
+nfs|ror find --type runbook nfs
+nfs|ror need network
+
+performance|ror diagnose performance
+performance|ror find --type runbook load
+performance|ror find --type runbook memory
+
+java|ror diagnose java [pid]
+java|ror collect java <pid>
+java|ror find --type runbook java
+
+tomcat|ror diagnose tomcat [service]
+tomcat|ror find --type runbook tomcat
+tomcat|ror need java
+
+kubernetes|ror diagnose kubernetes [namespace]
+kubernetes|ror run kubernetes/workload-summary.sh [namespace]
+kubernetes|ror find --type template k8s
+
+ansible|ror cheat ansible
+ansible|ror find --type template ansible
+ansible|ror pkg suggest ansible
+
+containers|ror diagnose docker
+containers|ror cheat docker
+containers|ror find --type template docker
+
+terraform|ror find --type template terraform
+terraform|ror new terraform/module.tf ./main.tf
+terraform|ror find terraform
+
+github|ror find --type template github
+github|ror new github/workflow-shellcheck.yml ./.github/workflows/shellcheck.yml
+github|ror new github/pull_request_template.md ./.github/pull_request_template.md
+
+git|ror run git/repo-health.sh [path]
+git|ror cheat git
+git|ror dotfiles diff git

@@ -1,53 +1,55 @@
 # Tests
 
-Room of Requirement tests protect the portability, rollback, discovery, reuse, and safety promises of the repository.
+Room of Requirement tests protect portability, rollback, discovery, reuse, relationship integrity, and safety promises.
 
 ## CLI smoke tests
-
-Run the general CLI smoke suite with:
 
 ```bash
 bash tests/smoke/ror-smoke.sh
 ```
 
-It checks core discovery, reference, package-profile, diagnostic, collection, template-copy, and read-only dotfile interfaces without intentionally changing system configuration.
+The cross-platform smoke suite checks core discovery, package profiles, diagnostic/collection interfaces, template copying, dotfile read-only interfaces, operational Git utility behavior, and the Room relationship layer.
 
-Current smoke coverage verifies:
+Phase 7 coverage verifies metadata-backed `ror need`, Start-here/Related-room output, NFS/performance/Docker/Kubernetes discoverability, representative template copies, collection output, and runtime resource-path integrity.
 
-- curated `ror need` topic listing and aliases;
-- expected related-resource output for SSH, TLS, NFS, performance, and Kubernetes;
-- **every curated resource path in `lib/resources.sh` actually exists**;
-- the package-profile list line structure;
-- portable `SUMMARY` sections from DNS and Java diagnostics;
-- `ror new` can copy representative Ansible, Kubernetes, and Terraform templates;
-- system and baseline collection output is created successfully.
+## External diagnostic stub tests
 
-The curated-path check exists because `ror need` intentionally hides missing resource paths from normal output. CI must fail if the relationship map points at a stale/renamed file.
+```bash
+bash tests/smoke/external-diagnostics-smoke.sh
+```
+
+Docker/Kubernetes diagnostics depend on external CLIs/servers, so CI does **not** probe whatever daemon/cluster happens to be installed on a runner. The test instead places deterministic `docker` and `kubectl` stubs first on `PATH` and verifies collector parsing/summary behavior on both Ubuntu and Windows.
+
+This keeps smoke tests fast, repeatable, and independent of vendor service availability while still exercising the new collectors.
+
+## Room metadata integrity
+
+```bash
+python3 tests/validate_room_metadata.py
+```
+
+This validator checks unique canonical topics/aliases, related-room links, action/resource ownership, minimum per-topic coverage, safe repository-relative paths, resource existence, and duplicates.
+
+The Python validator is stricter than the runtime reader by design.
 
 ## Dotfile lifecycle smoke tests
-
-Run the managed-dotfile round-trip suite with:
 
 ```bash
 bash tests/smoke/dotfiles-smoke.sh
 ```
 
-This suite creates a disposable temporary `HOME` and state directory, then verifies that Bash/Readline, Git, and tmux managed fragments can be installed and restored safely. It checks that existing files receive the marked include/source blocks, managed fragments match repository sources, rollback restores originals, newly created managed files are removed on restore, and backup snapshots remain discoverable.
-
-The test never intentionally modifies the real user or CI-runner home configuration.
+This suite uses a disposable `HOME`/state directory and validates install/restore round trips without touching the real user or CI-runner home configuration.
 
 ## Markdown links
-
-Validate local Markdown links with:
 
 ```bash
 python3 tests/validate_markdown_links.py
 ```
 
-Only local repository links are checked. External URLs are deliberately not fetched so validation remains deterministic and does not require internet access.
+Only local repository links are checked; external URLs are not fetched.
 
 ## CI
 
-GitHub Actions additionally checks shell syntax, error-level ShellCheck findings, YAML, JSON, PowerShell parsing, Ubuntu/Windows CLI smoke tests, Ubuntu/Windows dotfile lifecycle tests, and full-history secret scanning.
+GitHub Actions runs Bash syntax, error-level ShellCheck, YAML/JSON validation, Room metadata integrity, local Markdown links, PowerShell parsing, Ubuntu/Windows CLI smoke tests, deterministic external-diagnostic stub tests, Ubuntu/Windows dotfile lifecycle tests, and full-history Gitleaks scanning.
 
 See [Resource Authoring Guide](../docs/resource-authoring.md) for the definition-of-done checklist when adding new library content.

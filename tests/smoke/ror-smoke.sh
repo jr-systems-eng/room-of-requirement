@@ -14,45 +14,55 @@ check() {
 check "${ROR[@]}" help >/dev/null
 check "${ROR[@]}" info >/dev/null
 check "${ROR[@]}" path scripts >/dev/null
+check "${ROR[@]}" path room >/dev/null
 check "${ROR[@]}" find ssh >/dev/null
 check "${ROR[@]}" find --type runbook ssh >/dev/null
 PAGER=cat check "${ROR[@]}" cheat subnetting >/dev/null
 
 need_list="$("${ROR[@]}" need list)"
-for topic in ssh tomcat nfs performance terraform github; do
+for topic in ssh tomcat nfs performance terraform github containers kubernetes; do
   printf '%s\n' "$need_list" | grep -q "$topic"
 done
 
 need_ssh="$("${ROR[@]}" need ssh)"
 printf '%s\n' "$need_ssh" | grep -q '^Room of Requirement: ssh$'
+printf '%s\n' "$need_ssh" | grep -q '^Start here:$'
+printf '%s\n' "$need_ssh" | grep -q '^Related rooms:$'
 printf '%s\n' "$need_ssh" | grep -q 'troubleshoot-ssh-connection.md'
 
 need_cert="$("${ROR[@]}" need certificate)"
 printf '%s\n' "$need_cert" | grep -q '^Room of Requirement: tls$'
+printf '%s\n' "$need_cert" | grep -q 'cert-expiry.sh'
 
 need_nfs="$("${ROR[@]}" need nfs)"
 printf '%s\n' "$need_nfs" | grep -q '^Room of Requirement: nfs$'
+printf '%s\n' "$need_nfs" | grep -q 'scripts/diagnostics/nfs.sh'
 printf '%s\n' "$need_nfs" | grep -q 'configure-nfs-share.md'
 
 need_perf="$("${ROR[@]}" need memory)"
 printf '%s\n' "$need_perf" | grep -q '^Room of Requirement: performance$'
+printf '%s\n' "$need_perf" | grep -q 'scripts/diagnostics/performance.sh'
 printf '%s\n' "$need_perf" | grep -q 'investigate-memory-pressure.md'
 
+need_containers="$("${ROR[@]}" need docker)"
+printf '%s\n' "$need_containers" | grep -q '^Room of Requirement: containers$'
+printf '%s\n' "$need_containers" | grep -q 'scripts/diagnostics/docker.sh'
+
 need_k8s="$("${ROR[@]}" need kubernetes)"
+printf '%s\n' "$need_k8s" | grep -q 'scripts/diagnostics/kubernetes.sh'
 printf '%s\n' "$need_k8s" | grep -q 'templates/k8s/deployment.yaml'
 
-# Every curated resource path must exist. This prevents ror_need_print's
-# existence guard from masking a stale relationship path.
+# Runtime and Python validation both protect the metadata/resource graph.
 # shellcheck source=../../lib/resources.sh
 . "$ROOT/lib/resources.sh"
 export ROR_HOME="$ROOT"
 while IFS= read -r topic; do
   while IFS='|' read -r _type path _note; do
     [ -n "$path" ] || continue
-    if [ ! -e "$ROOT/$path" ]; then
+    [ -e "$ROOT/$path" ] || {
       printf 'Missing curated resource for %s: %s\n' "$topic" "$path" >&2
       exit 1
-    fi
+    }
   done < <(ror_need_resources "$topic")
 done < <(ror_need_topics)
 
@@ -85,5 +95,9 @@ check "${ROR[@]}" new terraform/module.tf "$TMPDIR_ROR/main.tf" >/dev/null
 [ -s "$TMPDIR_ROR/rolling-change.yml" ]
 [ -s "$TMPDIR_ROR/ingress.yaml" ]
 [ -s "$TMPDIR_ROR/main.tf" ]
+
+repo_health="$("${ROR[@]}" run git/repo-health.sh "$ROOT")"
+printf '%s\n' "$repo_health" | grep -q '^Repository:'
+printf '%s\n' "$repo_health" | grep -q 'remote URLs are intentionally not printed'
 
 printf 'ROR smoke tests passed.\n'

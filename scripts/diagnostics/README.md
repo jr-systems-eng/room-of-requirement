@@ -1,59 +1,66 @@
 # Diagnostics
 
-Read-only collectors intended to answer **what state is this machine in?** before making changes.
+Read-only collectors intended to answer **what state is this machine/workload in?** before making changes.
 
-Use them directly with `ror run`, through the friendlier `ror diagnose` aliases, or capture the output with `ror collect`.
+Use them directly with `ror run`, through `ror diagnose`, or capture the same output with `ror collect`.
 
 | Target | Script | Example |
 |---|---|---|
 | Baseline intake | `baseline.sh` | `ror collect baseline` |
 | System | `system-info.sh` | `ror diagnose system` |
+| Performance | `performance.sh` | `ror diagnose performance` |
 | Network | `network-info.sh` | `ror diagnose network` |
+| NFS | `nfs.sh` | `ror diagnose nfs nfs.example.com` |
 | systemd service | `systemd-service.sh` | `ror diagnose systemd sshd` |
 | SSH server | `ssh-server.sh` | `ror diagnose ssh` |
 | TLS endpoint | `tls-endpoint.sh` | `ror diagnose tls example.com:443` |
 | DNS | `dns.sh` | `ror diagnose dns example.com` |
 | Storage/LVM | `storage.sh` | `ror diagnose storage` |
+| Docker | `docker.sh` | `ror diagnose docker` |
+| Kubernetes | `kubernetes.sh` | `ror diagnose kubernetes default` |
 | Java process | `java-process.sh` | `ror diagnose java 12345` |
 | Tomcat | `tomcat.sh` | `ror diagnose tomcat tomcat` |
 
 ## Baseline intake
 
-`ror collect baseline` is the general-purpose first look at an unfamiliar host. It combines system, network, storage, and resolver state with security-mode visibility, firewall state, time synchronization, failed services, recent warning-or-higher journal entries, kernel package information, and reboot status.
+`ror collect baseline` is the general-purpose first look at an unfamiliar host. It combines system, network, storage, resolver, security-mode, firewall, time-sync, failed-service, journal, kernel-package, and reboot state. The baseline skips the potentially expensive top-level `du /` scan.
 
-The baseline path deliberately skips the potentially expensive top-level `du /` scan. Use `ror diagnose storage` when the deeper directory-size scan is appropriate.
-
-The baseline intentionally reports only whether common proxy variables are present rather than printing their values. Process environment blocks are also excluded because they commonly contain credentials and tokens.
+Proxy variables are reported as present/not-present rather than by value. Process environment blocks are excluded because they commonly contain credentials and tokens.
 
 ## Interpreted summaries
 
-The systemd, SSH, TLS, DNS, storage, Java, and Tomcat collectors end with a `SUMMARY` section when they can make useful observations from direct evidence.
+High-value targeted collectors end with a `SUMMARY` section when direct evidence supports useful observations.
 
-Typical summary signals include:
+Phase 7 adds:
 
-- systemd unit load/active state and last main-process exit status;
-- SSH daemon activity, config validation, listener state, and selected KEX/authentication log patterns;
-- TLS certificate receipt, OpenSSL verification result, hostname match where supported, and expiry windows;
-- resolver configuration, system-resolver success, and DNS response status;
-- filesystem/inode thresholds and deleted-but-open files;
-- Java runtime/process presence and whether a requested PID appears to be Java;
-- Tomcat service/PID state plus selected `OutOfMemoryError`, PKIX, bind-conflict, and connection-failure patterns.
+- performance summary signals for load relative to CPU count, `MemAvailable`, D-state tasks, and OOM journal evidence;
+- NFS client/server visibility plus optional remote TCP/2049 reachability without pretending port reachability proves export/permission correctness;
+- Docker daemon/context/container-state observations without inspecting container environments;
+- Kubernetes API/node/pod observations without reading Secret objects or printing raw kubeconfig.
 
-Interpretation is intentionally conservative. `WARN` means **inspect this evidence**, not **the root cause is proven**. Raw command output remains above the summary so every observation can be checked.
+Existing summaries cover systemd, SSH, TLS, DNS, storage, Java, and Tomcat.
+
+Interpretation is intentionally conservative. `WARN` means **inspect this evidence**, not **the root cause is proven**. Raw command output remains above the summary.
 
 ## Collection files
 
 ```bash
 ror collect baseline
-ror collect system
-ror collect tls example.com:443
-ror collect systemd sshd
+ror collect performance
+ror collect nfs nfs.example.com
+ror collect docker
+ror collect kubernetes default
 ```
 
-Collection writes a timestamped text file to the current directory while also showing the output on screen. Set `ROR_COLLECT_OUTPUT` to choose a specific output path.
+Collection writes a timestamped text file to the current directory while also showing output on screen. Set `ROR_COLLECT_OUTPUT` to choose a specific output path.
 
 ## Safety contract
 
-Diagnostic scripts should not restart services, install packages, alter configuration, change permissions, or otherwise mutate the target system. Network diagnostics may make ordinary read-only connection/lookup attempts when that is the purpose of the collector.
+Diagnostic scripts do not restart services, install packages, alter configuration, change permissions, or intentionally mutate workloads. Ordinary connection/lookup/API-read attempts are allowed when they are the diagnostic's purpose.
 
-Avoid collecting secrets. In particular, process environment blocks are intentionally excluded from Java/Tomcat diagnostics because they commonly contain credentials and tokens. The Tomcat collector also excludes the systemd `Environment` property for the same reason.
+Do not collect secret-bearing surfaces merely because a CLI can expose them. In particular:
+
+- process/container environment blocks are excluded;
+- Tomcat diagnostics exclude systemd `Environment`;
+- Docker diagnostics do not use broad `docker inspect` environment output;
+- Kubernetes diagnostics do not read Secrets or dump kubeconfig contents.

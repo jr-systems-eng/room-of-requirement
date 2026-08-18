@@ -8,12 +8,12 @@ trap 'rm -rf "$TMP"' EXIT
 
 workflow_list="$("${ROR[@]}" workflow list)"
 for workflow in nfs-client service-recovery workstation ansible-inventory certificate-deploy-prep; do
-  printf '%s\n' "$workflow_list" | grep -q "$workflow"
+  grep -q "$workflow" <<< "$workflow_list"
 done
-printf '%s\n' "$workflow_list" | grep -q 'experimental'
+grep -q 'experimental' <<< "$workflow_list"
 
 version_output="$("${ROR[@]}" version)"
-printf '%s\n' "$version_output" | grep -q '^Room of Requirement v0\.9\.0$'
+grep -q '^Room of Requirement v0\.9\.0$' <<< "$version_output"
 [ "$("${ROR[@]}" path workflows)" = "$ROOT/workflows" ]
 [ "$("${ROR[@]}" path workflow-metadata)" = "$ROOT/config/workflows" ]
 
@@ -47,8 +47,8 @@ EOF
 chmod +x "$stub"/*
 
 nfs_plan="$(PATH="$stub:$PATH" "${ROR[@]}" workflow nfs-client --server localhost --export /data --mountpoint "$TMP/mountpoint")"
-printf '%s\n' "$nfs_plan" | grep -q '^Changes: NONE (plan/preflight only)\.$'
-printf '%s\n' "$nfs_plan" | grep -q 'Mount localhost:/data'
+grep -q '^Changes: NONE (plan/preflight only)\.$' <<< "$nfs_plan"
+grep -q 'Mount localhost:/data' <<< "$nfs_plan"
 [ -z "$(find "$TMP/mountpoint" -mindepth 1 -maxdepth 1 -print -quit)" ]
 
 ansible_stub="$TMP/ansible-bin"

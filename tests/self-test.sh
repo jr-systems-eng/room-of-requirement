@@ -32,7 +32,8 @@ fi
 "${ROR[@]}" help >/dev/null
 "${ROR[@]}" need list >/dev/null
 "${ROR[@]}" workflow list >/dev/null
-"${ROR[@]}" version | grep -q "v${version}"
+version_output="$("${ROR[@]}" version)"
+grep -q "v${version}" <<< "$version_output"
 printf '[OK] CLI discovery/version/workflow dispatch\n'
 
 printf 'Self-test passed.\n'

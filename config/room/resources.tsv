@@ -1,0 +1,97 @@
+# topic|type|path|note
+ssh|Reference|cheat-sheets/networking/ssh-sftp.md|SSH/SFTP client, server, and negotiation reference
+ssh|Diagnostic|scripts/diagnostics/ssh-server.sh|Daemon, listener, effective config, and recent log inspection
+ssh|Runbook|docs/runbooks/troubleshoot-ssh-connection.md|Stepwise SSH/SFTP troubleshooting procedure
+ssh|Snippet|snippets/networking.md|Reusable networking checks
+
+tls|Reference|cheat-sheets/security/openssl-certificates.md|OpenSSL and certificate reference
+tls|Diagnostic|scripts/diagnostics/tls-endpoint.sh|Handshake, leaf certificate, SAN, expiry, and verify checks
+tls|Utility|scripts/networking/cert-expiry.sh|Lightweight certificate expiry/status check for automation or quick review
+tls|Runbook|docs/runbooks/troubleshoot-tls-certificate.md|TLS/certificate troubleshooting procedure
+tls|Snippet|snippets/networking.md|Reusable endpoint/network checks
+
+dns|Reference|cheat-sheets/networking/dns.md|DNS lookup and resolver reference
+dns|Diagnostic|scripts/diagnostics/dns.sh|Resolver config/status and optional name lookup
+dns|Runbook|docs/runbooks/troubleshoot-dns-resolution.md|DNS-specific resolver and lookup decision path
+dns|Runbook|docs/runbooks/investigate-network-connectivity.md|Broader layered connectivity procedure
+dns|Snippet|snippets/networking.md|Reusable DNS/network checks
+
+network|Reference|cheat-sheets/networking/linux-network-troubleshooting.md|Linux network troubleshooting reference
+network|Reference|cheat-sheets/networking/subnetting.md|Subnetting reference
+network|Diagnostic|scripts/diagnostics/network-info.sh|Addresses, routes, resolver state, and listeners
+network|Utility|scripts/system/port-process.sh|Find the process/listener associated with a local TCP/UDP port
+network|Runbook|docs/runbooks/investigate-network-connectivity.md|Layered network troubleshooting procedure
+network|Snippet|snippets/networking.md|Reusable network checks
+
+systemd|Reference|cheat-sheets/linux/systemd-journalctl.md|systemd and journalctl reference
+systemd|Diagnostic|scripts/diagnostics/systemd-service.sh|Service state, unit, properties, logs, and summary
+systemd|Runbook|docs/runbooks/troubleshoot-systemd-service.md|Service troubleshooting procedure
+systemd|Template|templates/systemd/service.service|Known-good service unit starting point
+systemd|Template|templates/systemd/timer.timer|Known-good timer unit starting point
+
+storage|Reference|cheat-sheets/linux/storage-filesystems.md|Block device, filesystem, mount, and LVM reference
+storage|Diagnostic|scripts/diagnostics/storage.sh|Capacity, inode, mount, LVM, large-path, and open-file checks
+storage|Runbook|docs/runbooks/troubleshoot-full-filesystem.md|Full-filesystem troubleshooting procedure
+storage|Runbook|docs/runbooks/extend-lvm-filesystem.md|Safe LV and filesystem growth procedure
+storage|Snippet|snippets/one-liners.md|Reusable storage/admin one-liners
+
+nfs|Diagnostic|scripts/diagnostics/nfs.sh|Local NFS server/client state with optional server reachability test
+nfs|Runbook|docs/runbooks/configure-nfs-share.md|NFSv4 server export and client mount procedure
+nfs|Diagnostic|scripts/diagnostics/network-info.sh|Route, resolver, listener, and network context
+nfs|Diagnostic|scripts/diagnostics/storage.sh|Mount/filesystem/LVM context
+nfs|Reference|cheat-sheets/linux/storage-filesystems.md|Mount and filesystem reference
+nfs|Snippet|snippets/networking.md|Reusable reachability checks
+
+performance|Diagnostic|scripts/diagnostics/performance.sh|Load, CPU, memory, blocked-task, I/O, and OOM evidence with conservative summary
+performance|Diagnostic|scripts/diagnostics/system-info.sh|CPU, memory, uptime, and system context
+performance|Diagnostic|scripts/diagnostics/storage.sh|Filesystem and storage context for blocked/I/O waits
+performance|Runbook|docs/runbooks/investigate-high-load.md|CPU/load/blocked-task investigation procedure
+performance|Runbook|docs/runbooks/investigate-memory-pressure.md|Memory/swap/OOM investigation procedure
+performance|Snippet|snippets/one-liners.md|Reusable process/system one-liners
+
+java|Reference|cheat-sheets/java/java-keystores.md|Java keystore/truststore reference
+java|Diagnostic|scripts/diagnostics/java-process.sh|Java runtime/process/JVM inspection
+java|Runbook|docs/runbooks/troubleshoot-java-pkix.md|Java certificate trust/PKIX troubleshooting procedure
+java|Reference|cheat-sheets/security/openssl-certificates.md|Certificate-chain inspection reference
+
+tomcat|Diagnostic|scripts/diagnostics/tomcat.sh|Tomcat service/process/log inspection
+tomcat|Diagnostic|scripts/diagnostics/java-process.sh|JVM follow-through for a Tomcat PID
+tomcat|Runbook|docs/runbooks/troubleshoot-tomcat-startup.md|Tomcat startup/failure decision path
+tomcat|Runbook|docs/runbooks/troubleshoot-systemd-service.md|Service-level troubleshooting procedure
+tomcat|Runbook|docs/runbooks/troubleshoot-java-pkix.md|PKIX/truststore procedure when certificate errors appear
+tomcat|Reference|cheat-sheets/java/java-keystores.md|Java keystore/truststore reference
+
+kubernetes|Diagnostic|scripts/diagnostics/kubernetes.sh|Current context, cluster reachability, node and namespace workload health
+kubernetes|Utility|scripts/kubernetes/workload-summary.sh|Compact workload/pod status for a namespace
+kubernetes|Reference|cheat-sheets/containers/kubernetes-kubectl.md|kubectl and Kubernetes reference
+kubernetes|Template|templates/k8s/deployment.yaml|Deployment starting point
+kubernetes|Template|templates/k8s/service.yaml|Service starting point
+kubernetes|Template|templates/k8s/namespace.yaml|Namespace starting point
+kubernetes|Template|templates/k8s/configmap.yaml|Non-secret application configuration
+kubernetes|Template|templates/k8s/ingress.yaml|Ingress starting point
+kubernetes|Template|templates/k8s/persistent-volume-claim.yaml|Persistent storage claim starting point
+
+ansible|Reference|cheat-sheets/automation/ansible.md|Ansible command/playbook reference
+ansible|Template|templates/ansible/playbook.yml|General playbook starting point
+ansible|Template|templates/ansible/inventory.ini|INI inventory starting point
+ansible|Template|templates/ansible/rolling-change.yml|Serial/rolling change playbook starting point
+ansible|Template|templates/ansible/audit-playbook.yml|Read-only evidence collection starting point
+
+containers|Diagnostic|scripts/diagnostics/docker.sh|Docker client/daemon, context, container state, Compose projects, and disk usage without environment dumps
+containers|Reference|cheat-sheets/containers/docker-compose.md|Docker Compose reference
+containers|Template|templates/docker/compose.yaml|Compose starting point
+containers|Template|templates/docker/Dockerfile|Container image starting point
+
+terraform|Template|templates/terraform/module.tf|Single-file portable Terraform module starting point
+terraform|Guide|docs/resource-authoring.md|Repository safety and placeholder conventions
+
+github|Template|templates/github/workflow-shellcheck.yml|Bash/ShellCheck workflow starting point
+github|Template|templates/github/workflow-ansible-lint.yml|Ansible lint workflow starting point
+github|Template|templates/github/pull_request_template.md|Pull-request review checklist starting point
+github|Guide|docs/resource-authoring.md|Repository authoring/validation contract
+
+git|Utility|scripts/git/repo-health.sh|Repository branch, worktree, upstream, and ahead/behind health without printing credential-bearing remote URLs
+git|Reference|cheat-sheets/development/git.md|Git command/workflow reference
+git|Snippet|snippets/git.md|Reusable Git fragments
+git|Dotfile|dotfiles/git/gitconfig|Portable managed Git defaults
+git|Dotfile|dotfiles/git/gitignore_global|Portable global ignore defaults

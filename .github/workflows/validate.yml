@@ -49,6 +49,9 @@ jobs:
             python3 -m json.tool "$file" >/dev/null
           done < <(find . -type f -name '*.json' -not -path './.git/*' -print0)
 
+      - name: Room metadata integrity
+        run: python3 tests/validate_room_metadata.py
+
       - name: Local Markdown links
         run: python3 tests/validate_markdown_links.py
 

@@ -27,7 +27,7 @@ Room of Requirement (ror)
 Discovery:
   ror doctor [--install-suggestions]
   ror info
-  ror path [cheat-sheets|snippets|scripts|templates|docs|local]
+  ror path [cheat-sheets|snippets|scripts|templates|docs|room|local]
   ror need [topic|list]
   ror find [--type TYPE] <term>
   ror search [--type TYPE] <term>
@@ -35,7 +35,7 @@ Discovery:
   ror cheatsheet <term>
 
 Troubleshooting:
-  ror diagnose <baseline|system|network|systemd|ssh|tls|dns|storage|java|tomcat> [args...]
+  ror diagnose <baseline|system|network|systemd|ssh|tls|dns|storage|nfs|performance|docker|kubernetes|java|tomcat> [args...]
   ror diag <target> [args...]
   ror collect <target> [args...]
   ror run <script> [args...]
@@ -55,16 +55,15 @@ Reuse/maintenance:
   ror update
 
 Examples:
-  ror need ssh
-  ror need certificate
-  ror doctor --install-suggestions
-  ror collect baseline
-  ror find --type runbook ssh
-  ror pkg suggest linux-admin
-  ror pkg install minimal
-  ror dotfiles diff all
-  ror dotfiles install bash
-  ror dotfiles restore latest
+  ror need performance
+  ror need nfs
+  ror diagnose performance
+  ror diagnose nfs nfs.example.com
+  ror diagnose docker
+  ror diagnose kubernetes default
+  ror run system/port-process.sh 8443
+  ror run networking/cert-expiry.sh example.com:443 30
+  ror run git/repo-health.sh .
 EOF
 }
 
@@ -76,6 +75,7 @@ cmd_info() {
   printf 'ARCH=%s\n' "$ROR_ARCH"
   printf 'WSL=%s\n' "$ROR_WSL"
   printf 'PACKAGE_MANAGER=%s\n' "$(ror_package_manager)"
+  printf 'ROOM_METADATA=%s\n' "$ROR_HOME/config/room"
   printf 'DOTFILES_CONFIG_HOME=%s\n' "$(ror_dotfiles_config_home)"
   printf 'DOTFILES_STATE_HOME=%s\n' "$(ror_dotfiles_state_home)"
 }
@@ -88,6 +88,7 @@ cmd_path() {
     script|scripts) printf '%s\n' "$ROR_HOME/scripts" ;;
     template|templates) printf '%s\n' "$ROR_HOME/templates" ;;
     doc|docs) printf '%s\n' "$ROR_HOME/docs" ;;
+    room|metadata) printf '%s\n' "$ROR_HOME/config/room" ;;
     local) printf '%s\n' "$ROR_HOME/local" ;;
     *) ror_die "unknown ROR path: $1" ;;
   esac
@@ -128,9 +129,8 @@ doctor_health() {
     mem_pct="$(awk '
       /^MemTotal:/ {total=$2}
       /^MemAvailable:/ {avail=$2}
-      END {
-        if (total > 0 && avail >= 0) printf "%.0f", ((total-avail)*100)/total
-      }' /proc/meminfo)"
+      END {if (total > 0 && avail >= 0) printf "%.0f", ((total-avail)*100)/total}
+    ' /proc/meminfo)"
     if [[ "$mem_pct" =~ ^[0-9]+$ ]]; then
       if [ "$mem_pct" -ge 90 ]; then
         doctor_item WARN 'memory pressure' "${mem_pct}% used"
@@ -361,6 +361,10 @@ diagnostic_script() {
     tls|ssl|certificate|cert) printf '%s\n' 'diagnostics/tls-endpoint.sh' ;;
     dns) printf '%s\n' 'diagnostics/dns.sh' ;;
     storage|disk|filesystem|fs) printf '%s\n' 'diagnostics/storage.sh' ;;
+    nfs|nfs4|nfsv4) printf '%s\n' 'diagnostics/nfs.sh' ;;
+    performance|perf|load|memory) printf '%s\n' 'diagnostics/performance.sh' ;;
+    docker|container|containers) printf '%s\n' 'diagnostics/docker.sh' ;;
+    kubernetes|k8s) printf '%s\n' 'diagnostics/kubernetes.sh' ;;
     java|jvm) printf '%s\n' 'diagnostics/java-process.sh' ;;
     tomcat) printf '%s\n' 'diagnostics/tomcat.sh' ;;
     *) return 1 ;;

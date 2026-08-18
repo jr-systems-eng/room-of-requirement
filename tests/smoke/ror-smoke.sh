@@ -83,12 +83,6 @@ printf '%s\n' "$dns_output" | grep -q '^===== SUMMARY =====$'
 java_output="$("${ROR[@]}" diagnose java)"
 printf '%s\n' "$java_output" | grep -q '^===== SUMMARY =====$'
 
-docker_output="$("${ROR[@]}" diagnose docker)"
-printf '%s\n' "$docker_output" | grep -q '^===== SUMMARY =====$'
-
-k8s_output="$("${ROR[@]}" diagnose kubernetes)"
-printf '%s\n' "$k8s_output" | grep -q '^===== SUMMARY =====$'
-
 ROR_COLLECT_OUTPUT="$TMPDIR_ROR/system.txt" check "${ROR[@]}" collect system >/dev/null
 [ -s "$TMPDIR_ROR/system.txt" ]
 

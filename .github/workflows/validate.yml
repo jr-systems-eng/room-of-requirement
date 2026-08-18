@@ -92,6 +92,10 @@ jobs:
         shell: bash
         run: bash tests/smoke/ror-smoke.sh
 
+      - name: Run external diagnostic stub tests
+        shell: bash
+        run: bash tests/smoke/external-diagnostics-smoke.sh
+
       - name: Run dotfile lifecycle smoke tests
         shell: bash
         run: bash tests/smoke/dotfiles-smoke.sh

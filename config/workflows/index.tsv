@@ -1,0 +1,6 @@
+# name|aliases(comma-separated)|mode|status|description|script
+nfs-client|nfs-mount,nfs|plan-apply|experimental|Configure and validate an NFSv4 client mount with optional persistent fstab/systemd automount configuration.|workflows/nfs-client.sh
+service-recovery|service-restart,systemd-recovery|plan-apply|experimental|Inspect a systemd service, show the restart plan, and restart/validate it only when explicitly applied.|workflows/service-recovery.sh
+workstation|portable-workstation|plan-apply|experimental|Combine package-profile and managed-dotfile setup into one inspectable workstation plan.|workflows/workstation.sh
+ansible-inventory|inventory-check,ansible-inventory-check|read-only|experimental|Validate and inspect an Ansible inventory without contacting managed hosts.|workflows/ansible-inventory.sh
+certificate-deploy-prep|cert-prep,certificate-prep|preparation|experimental|Inspect a certificate/key/chain and prepare a deployment/backup plan without replacing files.|workflows/certificate-deploy-prep.sh

@@ -6,6 +6,7 @@ ssh|Snippet|snippets/networking.md|Reusable networking checks
 
 tls|Reference|cheat-sheets/security/openssl-certificates.md|OpenSSL and certificate reference
 tls|Diagnostic|scripts/diagnostics/tls-endpoint.sh|Handshake, leaf certificate, SAN, expiry, and verify checks
+tls|Workflow|workflows/certificate-deploy-prep.sh|Preparation-only certificate/key/chain and deployment-target inspection
 tls|Utility|scripts/networking/cert-expiry.sh|Lightweight certificate expiry/status check for automation or quick review
 tls|Runbook|docs/runbooks/troubleshoot-tls-certificate.md|TLS/certificate troubleshooting procedure
 tls|Snippet|snippets/networking.md|Reusable endpoint/network checks
@@ -25,6 +26,7 @@ network|Snippet|snippets/networking.md|Reusable network checks
 
 systemd|Reference|cheat-sheets/linux/systemd-journalctl.md|systemd and journalctl reference
 systemd|Diagnostic|scripts/diagnostics/systemd-service.sh|Service state, unit, properties, logs, and summary
+systemd|Workflow|workflows/service-recovery.sh|Plan/apply restart and post-restart validation without config edits
 systemd|Runbook|docs/runbooks/troubleshoot-systemd-service.md|Service troubleshooting procedure
 systemd|Template|templates/systemd/service.service|Known-good service unit starting point
 systemd|Template|templates/systemd/timer.timer|Known-good timer unit starting point
@@ -36,6 +38,7 @@ storage|Runbook|docs/runbooks/extend-lvm-filesystem.md|Safe LV and filesystem gr
 storage|Snippet|snippets/one-liners.md|Reusable storage/admin one-liners
 
 nfs|Diagnostic|scripts/diagnostics/nfs.sh|Local NFS server/client state with optional server reachability test
+nfs|Workflow|workflows/nfs-client.sh|Guarded NFSv4 client mount workflow with optional fstab/systemd automount persistence
 nfs|Runbook|docs/runbooks/configure-nfs-share.md|NFSv4 server export and client mount procedure
 nfs|Diagnostic|scripts/diagnostics/network-info.sh|Route, resolver, listener, and network context
 nfs|Diagnostic|scripts/diagnostics/storage.sh|Mount/filesystem/LVM context
@@ -71,6 +74,7 @@ kubernetes|Template|templates/k8s/configmap.yaml|Non-secret application configur
 kubernetes|Template|templates/k8s/ingress.yaml|Ingress starting point
 kubernetes|Template|templates/k8s/persistent-volume-claim.yaml|Persistent storage claim starting point
 
+ansible|Workflow|workflows/ansible-inventory.sh|Read-only inventory parse/graph/host-variable validation without contacting managed hosts
 ansible|Reference|cheat-sheets/automation/ansible.md|Ansible command/playbook reference
 ansible|Template|templates/ansible/playbook.yml|General playbook starting point
 ansible|Template|templates/ansible/inventory.ini|INI inventory starting point

@@ -4,6 +4,7 @@ ssh|ror collect ssh
 ssh|ror find --type runbook ssh
 
 tls|ror diagnose tls host.example.com:443
+tls|ror workflow certificate-deploy-prep --cert cert.pem --key key.pem --target /path/to/deployed-cert.pem
 tls|ror collect tls host.example.com:443
 tls|ror find --type runbook certificate
 
@@ -16,6 +17,7 @@ network|ror collect network
 network|ror run system/port-process.sh <port>
 
 systemd|ror diagnose systemd <service>
+systemd|ror workflow service-recovery --service <service>
 systemd|ror collect systemd <service>
 systemd|ror find --type runbook systemd
 
@@ -24,6 +26,7 @@ storage|ror collect storage
 storage|ror find --type runbook lvm
 
 nfs|ror diagnose nfs [server]
+nfs|ror workflow nfs-client --server <server> --export /export --mountpoint /mnt/export
 nfs|ror find --type runbook nfs
 nfs|ror need network
 
@@ -43,6 +46,7 @@ kubernetes|ror diagnose kubernetes [namespace]
 kubernetes|ror run kubernetes/workload-summary.sh [namespace]
 kubernetes|ror find --type template k8s
 
+ansible|ror workflow ansible-inventory --inventory hosts.ini
 ansible|ror cheat ansible
 ansible|ror find --type template ansible
 ansible|ror pkg suggest ansible

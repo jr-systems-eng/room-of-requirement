@@ -2,6 +2,48 @@
 
 Notable changes to Room of Requirement are recorded here. The project uses the changelog to track capability-level changes rather than every individual file edit.
 
+## v0.9.0 - 2026-08-18
+
+### Added
+
+- Phase 8 Guided Operations.
+- Explicit repository version source in `VERSION` plus `ror version` output with local commit/branch/worktree state.
+- `ror update --check` for read-only comparison of the current branch against its configured remote branch using `git ls-remote` without printing the remote URL.
+- `ror self-test` as a local, read-only, network-independent trust check for core paths, Bash syntax, metadata, and CLI/workflow dispatch.
+- Metadata-backed workflow registry under `config/workflows/` with workflow name, aliases, mode, maturity status, purpose, and implementation path.
+- Generic workflow dispatcher in `lib/workflows.sh` and `ror workflow list` / `ror workflow <name> ...`.
+- `workflows/README.md` and `config/workflows/README.md` defining the guided-operation and maturity contracts.
+- Initial guided workflows, all intentionally marked `experimental`:
+  - `nfs-client` — NFSv4 client preflight/plan with explicit apply, optional guarded `/etc/fstab` persistence, post-mount validation, and concrete rollback guidance.
+  - `service-recovery` — systemd unit inspection/restart/validation without configuration edits.
+  - `workstation` — combined package-profile and managed-dotfile planning/application using existing ROR mutation paths.
+  - `ansible-inventory` — read-only inventory parse/graph/host-variable validation without managed-host connections.
+  - `certificate-deploy-prep` — preparation-only certificate/key/chain/target inspection with no deployment/apply path.
+- `tests/validate_workflow_metadata.py` for workflow name/alias/mode/status/path/executable integrity.
+- Cross-platform `tests/smoke/workflow-smoke.sh` protecting workflow listing/help/failure behavior, NFS plan-only non-mutation, stubbed Ansible inventory validation, version/path commands, and self-test.
+- Room integration for NFS, systemd, TLS, and Ansible workflows.
+
+### Changed
+
+- Root README, architecture, resource-authoring guidance, and test documentation now define the four operational layers: `need`, `diagnose`, `workflow`, and `run`.
+- `ror find` now supports workflow discovery and includes workflows in all-resource search.
+- `ror info` exposes repository version and workflow metadata location; `ror path workflows` / `ror path workflow-metadata` expose workflow paths.
+- `ror doctor` now displays the ROR version.
+- CI Bash syntax/ShellCheck coverage now includes `workflows/`.
+- CI now validates workflow metadata and runs workflow smoke tests on Ubuntu and Windows.
+- `ror dotfiles diff` now validates the selected dotfile group before entering the process-substitution loop, so invalid groups fail reliably.
+- NFS workflow preflight refuses to apply over an already-mounted path unless the existing source matches the requested NFS source.
+
+### Safety / maturity
+
+- `plan-apply` workflows are non-mutating by default and require the literal `--apply` flag for their narrow mutation path.
+- Blocking preflight findings prevent workflow apply.
+- CI intentionally never invokes workflow `--apply`; mutating behavior requires representative field testing beyond automated tests.
+- Workflow status is independent of repository version/CI state. Phase 8 workflows remain `experimental` until successful apply, expected failure paths, validation, rollback/recovery, and relevant platform behavior have been field-tested.
+- LVM/filesystem growth remains runbook-only; Phase 8 does not automate storage resizing.
+- Certificate deployment preparation intentionally has no apply mode.
+- The project remains pre-1.0 with no artificial requirement to reach `1.0.0` after a fixed number of phases.
+
 ## v0.8.0 - 2026-08-18
 
 ### Added

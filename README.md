@@ -2,7 +2,7 @@
 
 > **Always equipped for the seeker's needs.**
 
-A portable engineering toolbox for unfamiliar systems: quick references, diagnostics, operational utilities, reusable scripts, templates, managed dotfiles, runbooks, and bootstrap helpers that can travel from machine to machine.
+A portable engineering toolbox for unfamiliar systems: quick references, diagnostics, guided workflows, operational utilities, reusable scripts, templates, managed dotfiles, runbooks, and bootstrap helpers that can travel from machine to machine.
 
 ## I need to...
 
@@ -11,17 +11,34 @@ A portable engineering toolbox for unfamiliar systems: quick references, diagnos
 | Bring together everything ROR knows about a topic | `ror need ssh` |
 | Quickly assess an unfamiliar host | `ror doctor` |
 | Capture a general-purpose handoff bundle | `ror collect baseline` |
+| Follow an inspectable procedure before changing a host | `ror workflow list` |
 | Investigate load/memory pressure | `ror need performance` |
-| Inspect NFS state / configuration guidance | `ror need nfs` |
+| Inspect or configure an NFS client safely | `ror need nfs` / `ror workflow nfs-client ...` |
 | Inspect Docker/Kubernetes runtime health | `ror diagnose docker` / `ror diagnose kubernetes` |
+| Validate an Ansible inventory without connecting to hosts | `ror workflow ansible-inventory --inventory hosts.ini` |
+| Prepare certificate deployment evidence | `ror workflow certificate-deploy-prep ...` |
 | Answer a narrow operational question | [`scripts/`](scripts/README.md) |
-| Prepare an admin/jumpbox toolset | `ror pkg suggest linux-admin` |
+| Prepare an admin/jumpbox toolset | `ror workflow workstation` |
 | Review portable shell/tool config | `ror dotfiles diff all` |
 | Remember a command or concept | [`cheat-sheets/`](cheat-sheets/README.md) |
-| Follow a safe procedure | [`docs/runbooks/`](docs/runbooks/README.md) |
+| Follow a detailed manual procedure | [`docs/runbooks/`](docs/runbooks/README.md) |
 | Create from a known-good starting point | [`templates/`](templates/README.md) |
 | Add a reusable resource correctly | [`docs/resource-authoring.md`](docs/resource-authoring.md) |
+| Check the installed ROR build | `ror version` / `ror self-test` |
 | Set up ROR on a new machine | [`bootstrap/`](bootstrap/README.md) |
+
+## The operating model
+
+ROR now has four intentionally distinct operational layers:
+
+```text
+ror need        -> What resources relate to this problem/topic?
+ror diagnose    -> What state is the system in?
+ror workflow    -> What ordered procedure should I follow, and what would it change?
+ror run         -> Run one specific utility.
+```
+
+The layers are complementary. A Room can point to a diagnostic, runbook, workflow, utility, template, or related Room without automatically executing any of them.
 
 ## Ask the Room
 
@@ -40,33 +57,128 @@ ror need terraform
 ror need github
 ```
 
-Phase 7 makes the output more actionable while keeping it deterministic:
+Example:
 
 ```text
-Room of Requirement: performance
-Purpose: Linux load, CPU, memory, swap, blocked tasks, and evidence-driven performance triage.
+Room of Requirement: nfs
+Purpose: NFSv4 server exports, client mounts, persistence, permissions, and connectivity.
 
 Start here:
-  ror diagnose performance
+  ror diagnose nfs [server]
 
 Next actions:
-  ror find --type runbook load
-  ror find --type runbook memory
+  ror workflow nfs-client --server <server> --export /export --mountpoint /mnt/export
+  ror find --type runbook nfs
+  ror need network
 
 Resources:
   ...
 
 Related rooms:
+  network          ...
   storage          ...
-  systemd          ...
-  tomcat           ...
 ```
 
-Topic knowledge now lives in [`config/room/`](config/room/README.md): canonical names/aliases/descriptions/related rooms, ordered actions, and resource relationships. `lib/resources.sh` is a generic reader rather than a growing topic-specific case statement.
+Topic knowledge lives in [`config/room/`](config/room/README.md): canonical names/aliases/descriptions/related rooms, ordered actions, and resource relationships. `lib/resources.sh` is a generic reader rather than a growing topic-specific case statement.
 
 Aliases normalize common wording such as `certificate -> tls`, `sftp -> ssh`, `memory -> performance`, `nfs4 -> nfs`, `docker -> containers`, `k8s -> kubernetes`, `tf -> terraform`, and `actions -> github`.
 
 `ror need` is read-only. It does not execute suggestions or perform fuzzy diagnosis. Unknown topics fall back to literal repository search.
+
+## Guided operations
+
+Phase 8 introduces `ror workflow` as a transparent procedure layer.
+
+```bash
+ror workflow list
+
+ror workflow nfs-client \
+  --server nfs.example.com \
+  --export /data \
+  --mountpoint /mnt/data
+
+ror workflow service-recovery --service sshd
+ror workflow workstation
+ror workflow ansible-inventory --inventory hosts.ini
+ror workflow certificate-deploy-prep --cert cert.pem --key key.pem --target /etc/pki/tls/certs/app.pem
+```
+
+Every workflow is registered under [`config/workflows/`](config/workflows/README.md) and implemented under [`workflows/`](workflows/README.md).
+
+Workflow modes deliberately distinguish risk:
+
+- **read-only** — inspection/validation only;
+- **preparation** — builds an evidence-backed change/deployment plan but does not apply it;
+- **plan-apply** — default invocation is non-mutating and requires an explicit `--apply` to perform the narrow operation described by the workflow.
+
+All Phase 8 workflows start with status **experimental**, even when CI is green. CI proves code/metadata/test integrity; representative field testing is required before a workflow is promoted to `stable`.
+
+### NFS client workflow
+
+Plan only:
+
+```bash
+ror workflow nfs-client \
+  --server nfs.example.com \
+  --export /media \
+  --mountpoint /mnt/media \
+  --persist
+```
+
+The workflow checks platform/tooling, name resolution, TCP/2049 when `nc` is available, mountpoint safety, existing mounts, `/etc/fstab` conflicts, and privilege availability. It then prints the exact mount/persistence plan without changing the host.
+
+Only after review:
+
+```bash
+ror workflow nfs-client \
+  --server nfs.example.com \
+  --export /media \
+  --mountpoint /mnt/media \
+  --persist \
+  --apply
+```
+
+Persistent apply backs up `/etc/fstab` before adding a guarded NFS entry and prints rollback commands using the actual backup path.
+
+### systemd service recovery
+
+```bash
+ror workflow service-recovery --service tomcat
+```
+
+The default path inspects unit state/status and shows the restart/validation plan. `--apply` performs only `systemctl restart <unit>` followed by state/journal validation; it never edits service configuration.
+
+### Portable workstation
+
+```bash
+ror workflow workstation
+ror workflow workstation --profile troubleshooting --dotfiles bash,git,tmux
+```
+
+The default path combines `ror pkg suggest` with managed-dotfile diffs. `--apply` delegates to the existing explicit package/dotfile mutation paths rather than reimplementing them.
+
+### Ansible inventory validation
+
+```bash
+ror workflow ansible-inventory --inventory hosts.ini
+ror workflow ansible-inventory --inventory hosts.ini --host app01
+```
+
+This workflow is fully read-only: it parses the inventory, prints the graph, and can render one host's variables without contacting managed hosts.
+
+### Certificate deployment preparation
+
+```bash
+ror workflow certificate-deploy-prep \
+  --cert fullchain.pem \
+  --key privkey.pem \
+  --chain chain.pem \
+  --target /etc/pki/tls/certs/app.pem
+```
+
+It inspects certificate identity/dates, expiry window, certificate/key public-key match, optional chain verification, and target metadata/backup naming. It intentionally has **no apply mode**.
+
+LVM/filesystem growth remains runbook-only in Phase 8. ROR will not automate storage expansion until the workflow framework has been field-tested more extensively.
 
 ## First look at a machine
 
@@ -99,7 +211,7 @@ ror diagnose tomcat tomcat
 
 High-value collectors end with conservative `SUMMARY` sections. A warning means **inspect this evidence**, not **ROR has proven the root cause**. Raw evidence remains visible above the summary.
 
-New Phase 7 collectors:
+Current operational collectors include:
 
 - **performance** — load/CPU context, top processes, memory/swap, vmstat, blocked tasks, optional iostat, OOM evidence;
 - **NFS** — local client mounts/options, exports/server/listener state, service/kernel events, optional remote TCP/2049 test;
@@ -109,8 +221,6 @@ New Phase 7 collectors:
 Save the same evidence with `ror collect <target>`.
 
 ## Operational utilities
-
-Phase 7 starts filling the previously scaffold-only script areas with small reusable tools:
 
 ```bash
 ror run system/port-process.sh 8443
@@ -132,9 +242,12 @@ See [Scripts](scripts/README.md).
 
 ```bash
 ror info
+ror version
 ror path cheat-sheets
 ror path room
+ror path workflows
 ror find ssh
+ror find --type workflow nfs
 ror find --type runbook certificate
 ror find --type script port
 ror search java
@@ -200,6 +313,20 @@ ROR installs managed fragments under `~/.config/ror/` and small marked include/s
 
 See [Dotfiles](dotfiles/README.md) and [Portable Workstation Setup](docs/setup/portable-workstation.md).
 
+## Version, update, and self-test
+
+ROR now carries an explicit repository version in `VERSION`.
+
+```bash
+ror version
+ror update --check
+ror self-test
+```
+
+`ror version` reports the semantic version and local Git commit/branch/worktree state. `ror update --check` compares the current branch against its configured remote branch using `git ls-remote` without updating remote-tracking refs. It never prints the remote URL. `ror self-test` is local, read-only, and network-independent: it checks core paths, Bash syntax, metadata validators when Python is available, and basic CLI/workflow dispatch.
+
+`ror update` retains its existing safety behavior: the worktree must be clean and Git performs a fast-forward-only pull.
+
 ## Bootstrap
 
 Safe default on Linux/macOS/WSL:
@@ -233,30 +360,35 @@ Windows uses `bootstrap/install.ps1` with an available Bash environment such as 
 
 ## Trust and validation
 
-`main` is guarded by GitHub Actions checks for Bash/ShellCheck, YAML/JSON, PowerShell, local Markdown links, Linux/Windows CLI smoke tests, dotfile lifecycle tests, full-history Gitleaks, and the new Room metadata validator.
+`main` is guarded by GitHub Actions checks for Bash/ShellCheck, YAML/JSON, PowerShell, local Markdown links, Linux/Windows CLI smoke tests, workflow smoke tests, external diagnostic stubs, dotfile lifecycle tests, full-history Gitleaks, Room metadata validation, and workflow metadata validation.
 
-Room validation checks alias uniqueness, related-room references, action/resource ownership, path safety/existence, duplicates, and minimum per-topic coverage. This means the content graph can grow without silently accumulating broken relationships.
+Workflow CI explicitly tests only non-mutating paths. `--apply` behavior requires field testing on representative systems; passing CI alone is not a reason to promote an experimental workflow to stable.
 
 Run locally:
 
 ```bash
+ror self-test
 bash tests/smoke/ror-smoke.sh
+bash tests/smoke/workflow-smoke.sh
 bash tests/smoke/dotfiles-smoke.sh
 python3 tests/validate_room_metadata.py
+python3 tests/validate_workflow_metadata.py
 python3 tests/validate_markdown_links.py
 ```
 
-See [Tests](tests/README.md) and [Resource Authoring Guide](docs/resource-authoring.md).
+See [Tests](tests/README.md), [Workflow Metadata](config/workflows/README.md), and [Resource Authoring Guide](docs/resource-authoring.md).
 
 ## Design principles
 
 - **Portable:** resources should not depend on the machine where they were authored.
 - **Safe:** discovery/diagnostics are read-only; mutations are explicit/reversible where practical.
+- **Plan before apply:** guided mutation defaults to an inspectable plan and requires an explicit apply request.
+- **Field-tested:** CI is necessary but workflow maturity is earned on representative systems before promotion to stable.
 - **OS-aware:** platform-specific behavior belongs behind common interfaces.
 - **Local stays local:** secrets and machine-specific settings are not committed.
 - **Discoverable:** `ror need` provides curated relationships; `ror find` provides literal search.
-- **Inspectable:** interpretation sits beside raw evidence.
-- **Deterministic:** Room relationships are versioned metadata, not hidden inference.
+- **Inspectable:** interpretation and workflow plans sit beside the evidence that supports them.
+- **Deterministic:** Room/workflow relationships are versioned metadata, not hidden inference.
 - **Reusable:** capture procedures/tools/starting points once rather than rebuilding them each incident/project.
 - **Trustworthy:** automated validation catches syntax, link, metadata, rollback, portability, and secret-leak regressions.
 
@@ -268,6 +400,8 @@ See [Philosophy](docs/philosophy.md), [Architecture](docs/architecture.md), and 
 - [Snippets](snippets/README.md)
 - [Scripts](scripts/README.md)
 - [Diagnostics](scripts/diagnostics/README.md)
+- [Guided Workflows](workflows/README.md)
+- [Workflow Metadata](config/workflows/README.md)
 - [Runbooks](docs/runbooks/README.md)
 - [Templates](templates/README.md)
 - [Room Metadata](config/room/README.md)

@@ -59,15 +59,21 @@ ror_workflow_list() {
 }
 
 ror_workflow_run() {
-  local requested="${1:-}" canonical record name aliases mode status description script
+  local requested="${1:-}" canonical record name aliases mode status description script rc
   [ -n "$requested" ] || {
     ror_workflow_list
     return 0
   }
   shift || true
 
-  canonical="$(ror_workflow_resolve "$requested")" || return 2
-  record="$(ror_workflow_record "$canonical")" || return 2
+  canonical="$(ror_workflow_resolve "$requested")" || {
+    printf 'Unknown workflow: %s\n' "$requested" >&2
+    exit 2
+  }
+  record="$(ror_workflow_record "$canonical")" || {
+    printf 'Workflow metadata missing for: %s\n' "$canonical" >&2
+    exit 2
+  }
   IFS='|' read -r name aliases mode status description script <<< "$record"
 
   printf 'Workflow: %s\n' "$name"
@@ -78,8 +84,11 @@ ror_workflow_run() {
 
   [ -f "$ROR_HOME/$script" ] || {
     printf 'Workflow implementation missing: %s\n' "$script" >&2
-    return 2
+    exit 2
   }
+
   ROR_WORKFLOW_NAME="$name" ROR_WORKFLOW_MODE="$mode" ROR_WORKFLOW_STATUS="$status" \
     bash "$ROR_HOME/$script" "$@"
+  rc=$?
+  [ "$rc" -eq 0 ] || exit "$rc"
 }

@@ -1,0 +1,33 @@
+---
+- name: Collect read-only audit evidence
+  hosts: __TARGET_GROUP__
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: Capture identity
+      ansible.builtin.command: id
+      register: identity
+      changed_when: false
+
+    - name: Capture operating system release
+      ansible.builtin.command: cat /etc/os-release
+      register: os_release
+      changed_when: false
+
+    - name: Capture failed systemd units
+      ansible.builtin.command: systemctl --failed --no-pager --no-legend
+      register: failed_units
+      changed_when: false
+      failed_when: false
+
+    - name: Display evidence
+      ansible.builtin.debug:
+        msg:
+          host: "{{ inventory_hostname }}"
+          identity: "{{ identity.stdout_lines }}"
+          os_release: "{{ os_release.stdout_lines }}"
+          failed_units: "{{ failed_units.stdout_lines }}"
+
+# Extend with read-only commands appropriate to the audit.
+# Prefer changed_when: false and avoid secrets in registered/displayed output.

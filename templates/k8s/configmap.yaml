@@ -1,0 +1,10 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: __APP_NAME__-config
+  namespace: __NAMESPACE__
+data:
+  __CONFIG_KEY__: "__CONFIG_VALUE__"
+
+# ConfigMaps are not for credentials, tokens, private keys, or other secrets.

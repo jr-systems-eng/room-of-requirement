@@ -1,0 +1,33 @@
+---
+- name: __CHANGE_DESCRIPTION__
+  hosts: __TARGET_GROUP__
+  become: true
+  gather_facts: true
+  serial: "__SERIAL__"
+  max_fail_percentage: 0
+
+  pre_tasks:
+    - name: Confirm target platform
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.os_family is defined
+        fail_msg: Unable to identify the target operating system.
+
+  tasks:
+    - name: Apply the intended change
+      ansible.builtin.debug:
+        msg: Replace this task with the idempotent change.
+
+    - name: Validate the changed host
+      ansible.builtin.command: __VALIDATION_COMMAND__
+      register: validation
+      changed_when: false
+
+    - name: Show validation result
+      ansible.builtin.debug:
+        var: validation.stdout_lines
+
+  post_tasks:
+    - name: Confirm host completed the wave
+      ansible.builtin.debug:
+        msg: "Validated {{ inventory_hostname }}"

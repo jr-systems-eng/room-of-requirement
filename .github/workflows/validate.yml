@@ -25,7 +25,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mapfile -d '' files < <(find bin lib bootstrap scripts tests -type f -name '*.sh' -print0)
+          mapfile -d '' files < <(find bin lib bootstrap scripts workflows tests -type f -name '*.sh' -print0)
           printf 'Checking %s shell files\n' "${#files[@]}"
           for file in "${files[@]}"; do
             bash -n "$file"
@@ -35,7 +35,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mapfile -d '' files < <(find bin lib bootstrap scripts tests -type f -name '*.sh' -print0)
+          mapfile -d '' files < <(find bin lib bootstrap scripts workflows tests -type f -name '*.sh' -print0)
           shellcheck -x -S error "${files[@]}"
 
       - name: YAML syntax and style
@@ -51,6 +51,9 @@ jobs:
 
       - name: Room metadata integrity
         run: python3 tests/validate_room_metadata.py
+
+      - name: Workflow metadata integrity
+        run: python3 tests/validate_workflow_metadata.py
 
       - name: Local Markdown links
         run: python3 tests/validate_markdown_links.py
@@ -95,6 +98,10 @@ jobs:
       - name: Run external diagnostic stub tests
         shell: bash
         run: bash tests/smoke/external-diagnostics-smoke.sh
+
+      - name: Run workflow smoke tests
+        shell: bash
+        run: bash tests/smoke/workflow-smoke.sh
 
       - name: Run dotfile lifecycle smoke tests
         shell: bash

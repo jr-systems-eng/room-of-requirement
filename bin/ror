@@ -19,6 +19,8 @@ export ROR_HOME
 . "$ROR_HOME/lib/dotfiles.sh"
 # shellcheck source=../lib/resources.sh
 . "$ROR_HOME/lib/resources.sh"
+# shellcheck source=../lib/workflows.sh
+. "$ROR_HOME/lib/workflows.sh"
 
 usage() {
   cat <<'EOF'
@@ -27,7 +29,8 @@ Room of Requirement (ror)
 Discovery:
   ror doctor [--install-suggestions]
   ror info
-  ror path [cheat-sheets|snippets|scripts|templates|docs|room|local]
+  ror version
+  ror path [cheat-sheets|snippets|scripts|templates|docs|room|workflows|local]
   ror need [topic|list]
   ror find [--type TYPE] <term>
   ror search [--type TYPE] <term>
@@ -39,6 +42,10 @@ Troubleshooting:
   ror diag <target> [args...]
   ror collect <target> [args...]
   ror run <script> [args...]
+
+Guided operations:
+  ror workflow list
+  ror workflow <name> [workflow-args...]
 
 Portable environment:
   ror pkg list
@@ -52,23 +59,54 @@ Portable environment:
 
 Reuse/maintenance:
   ror new <template> <destination>
+  ror self-test
+  ror update --check
   ror update
 
 Examples:
-  ror need performance
   ror need nfs
   ror diagnose performance
-  ror diagnose nfs nfs.example.com
-  ror diagnose docker
-  ror diagnose kubernetes default
-  ror run system/port-process.sh 8443
-  ror run networking/cert-expiry.sh example.com:443 30
-  ror run git/repo-health.sh .
+  ror workflow list
+  ror workflow nfs-client --server nfs.example.com --export /data --mountpoint /mnt/data
+  ror workflow service-recovery --service sshd
+  ror workflow ansible-inventory --inventory hosts.ini
+  ror workflow certificate-deploy-prep --cert cert.pem --key key.pem --target /etc/pki/tls/certs/app.pem
+  ror version
+  ror self-test
 EOF
+}
+
+ror_version_value() {
+  if [ -r "$ROR_HOME/VERSION" ]; then
+    tr -d '\r\n' < "$ROR_HOME/VERSION"
+  else
+    printf 'unknown'
+  fi
+}
+
+cmd_version() {
+  local version branch commit worktree
+  version="$(ror_version_value)"
+  printf 'Room of Requirement v%s\n' "$version"
+  if ror_have git && git -C "$ROR_HOME" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    commit="$(git -C "$ROR_HOME" rev-parse --short HEAD 2>/dev/null || true)"
+    branch="$(git -C "$ROR_HOME" branch --show-current 2>/dev/null || true)"
+    if [ -n "$(git -C "$ROR_HOME" status --porcelain 2>/dev/null)" ]; then
+      worktree='dirty'
+    else
+      worktree='clean'
+    fi
+    printf 'Commit: %s\n' "${commit:-unknown}"
+    printf 'Branch: %s\n' "${branch:-detached}"
+    printf 'Worktree: %s\n' "$worktree"
+  else
+    printf 'Git metadata: unavailable\n'
+  fi
 }
 
 cmd_info() {
   ror_detect_os
+  printf 'ROR_VERSION=%s\n' "$(ror_version_value)"
   printf 'ROR_HOME=%s\n' "$ROR_HOME"
   printf 'OS=%s\n' "$ROR_OS"
   printf 'OS_FAMILY=%s\n' "$ROR_OS_FAMILY"
@@ -76,6 +114,7 @@ cmd_info() {
   printf 'WSL=%s\n' "$ROR_WSL"
   printf 'PACKAGE_MANAGER=%s\n' "$(ror_package_manager)"
   printf 'ROOM_METADATA=%s\n' "$ROR_HOME/config/room"
+  printf 'WORKFLOW_METADATA=%s\n' "$ROR_HOME/config/workflows"
   printf 'DOTFILES_CONFIG_HOME=%s\n' "$(ror_dotfiles_config_home)"
   printf 'DOTFILES_STATE_HOME=%s\n' "$(ror_dotfiles_state_home)"
 }
@@ -88,7 +127,9 @@ cmd_path() {
     script|scripts) printf '%s\n' "$ROR_HOME/scripts" ;;
     template|templates) printf '%s\n' "$ROR_HOME/templates" ;;
     doc|docs) printf '%s\n' "$ROR_HOME/docs" ;;
-    room|metadata) printf '%s\n' "$ROR_HOME/config/room" ;;
+    room|room-metadata|metadata) printf '%s\n' "$ROR_HOME/config/room" ;;
+    workflow|workflows) printf '%s\n' "$ROR_HOME/workflows" ;;
+    workflow-metadata) printf '%s\n' "$ROR_HOME/config/workflows" ;;
     local) printf '%s\n' "$ROR_HOME/local" ;;
     *) ror_die "unknown ROR path: $1" ;;
   esac
@@ -218,6 +259,7 @@ cmd_doctor() {
 
   printf 'Room of Requirement\n'
   ror_hr
+  printf 'Version:    %s\n' "$(ror_version_value)"
   printf 'Home:       %s\n' "$ROR_HOME"
   printf 'OS:         %s (%s)\n' "$ROR_OS" "$ROR_OS_FAMILY"
   printf 'Arch:       %s\n' "$ROR_ARCH"
@@ -294,6 +336,7 @@ cmd_find() {
       find_in_root 'CHEAT SHEETS' "$ROR_HOME/cheat-sheets" "$term"
       find_in_root 'SNIPPETS' "$ROR_HOME/snippets" "$term"
       find_in_root 'DIAGNOSTICS / SCRIPTS' "$ROR_HOME/scripts" "$term"
+      find_in_root 'WORKFLOWS' "$ROR_HOME/workflows" "$term"
       find_in_root 'RUNBOOKS / DOCS' "$ROR_HOME/docs" "$term"
       find_in_root 'TEMPLATES' "$ROR_HOME/templates" "$term"
       ;;
@@ -301,6 +344,7 @@ cmd_find() {
     snippet|snippets) find_in_root 'SNIPPETS' "$ROR_HOME/snippets" "$term" ;;
     diagnostic|diagnostics) find_in_root 'DIAGNOSTICS' "$ROR_HOME/scripts/diagnostics" "$term" ;;
     script|scripts) find_in_root 'SCRIPTS' "$ROR_HOME/scripts" "$term" ;;
+    workflow|workflows) find_in_root 'WORKFLOWS' "$ROR_HOME/workflows" "$term" ;;
     runbook|runbooks) find_in_root 'RUNBOOKS' "$ROR_HOME/docs/runbooks" "$term" ;;
     doc|docs) find_in_root 'DOCS' "$ROR_HOME/docs" "$term" ;;
     template|templates) find_in_root 'TEMPLATES' "$ROR_HOME/templates" "$term" ;;
@@ -317,6 +361,23 @@ cmd_need() {
   printf 'No curated need map exists yet for: %s\n' "$topic" >&2
   printf 'Falling back to repository search.\n\n' >&2
   cmd_find "$topic"
+}
+
+cmd_workflow() {
+  local requested="${1:-list}" rc
+  case "$requested" in
+    list|--list)
+      ror_workflow_list
+      ;;
+    *)
+      if ror_workflow_run "$@"; then
+        return 0
+      fi
+      rc=$?
+      [ "$rc" -eq 2 ] && ror_die "unknown workflow: $requested"
+      return "$rc"
+      ;;
+  esac
 }
 
 cmd_cheat() {
@@ -493,10 +554,11 @@ cmd_dotfiles() {
       ror_dotfiles_status
       ;;
     diff)
+      dotfile_selected_groups "$requested" >/dev/null || ror_die "unknown dotfile group: $requested"
       while IFS= read -r group; do
         ror_dotfiles_diff_group "$group"
         printf '\n'
-      done < <(dotfile_selected_groups "$requested") || ror_die "unknown dotfile group: $requested"
+      done < <(dotfile_selected_groups "$requested")
       ;;
     install)
       [ -n "${2:-}" ] || ror_die 'dotfiles install requires <group|all>'
@@ -530,18 +592,62 @@ cmd_dotfiles() {
   esac
 }
 
+cmd_self_test() {
+  [ -f "$ROR_HOME/tests/self-test.sh" ] || ror_die 'self-test implementation is missing'
+  bash "$ROR_HOME/tests/self-test.sh"
+}
+
+cmd_update_check() {
+  local branch remote merge_ref remote_branch remote_sha local_sha
+  ror_have git || ror_die 'git is required for update checks'
+  git -C "$ROR_HOME" rev-parse --is-inside-work-tree >/dev/null 2>&1 || ror_die 'ROR_HOME is not a Git working tree'
+
+  branch="$(git -C "$ROR_HOME" branch --show-current 2>/dev/null || true)"
+  [ -n "$branch" ] || ror_die 'detached HEAD; cannot determine which branch to compare'
+  remote="$(git -C "$ROR_HOME" config --get "branch.${branch}.remote" 2>/dev/null || true)"
+  [ -n "$remote" ] || remote='origin'
+  merge_ref="$(git -C "$ROR_HOME" config --get "branch.${branch}.merge" 2>/dev/null || true)"
+  [ -n "$merge_ref" ] || merge_ref="refs/heads/$branch"
+  remote_branch="${merge_ref#refs/heads/}"
+
+  local_sha="$(git -C "$ROR_HOME" rev-parse HEAD)"
+  remote_sha="$(git -C "$ROR_HOME" ls-remote "$remote" "refs/heads/$remote_branch" 2>/dev/null | awk 'NR==1 {print $1}')"
+  if [ -z "$remote_sha" ]; then
+    printf 'Unable to resolve remote branch %s/%s.\n' "$remote" "$remote_branch" >&2
+    return 1
+  fi
+
+  printf 'Local:  %s (%s)\n' "${local_sha:0:12}" "$branch"
+  printf 'Remote: %s (%s/%s)\n' "${remote_sha:0:12}" "$remote" "$remote_branch"
+  if [ "$local_sha" = "$remote_sha" ]; then
+    printf 'Status: up to date\n'
+  else
+    printf 'Status: remote differs; run `ror update` after reviewing local worktree state.\n'
+  fi
+}
+
 cmd_update() {
-  ror_have git || ror_die 'git is required for update'
-  [ -z "$(git -C "$ROR_HOME" status --porcelain)" ] || ror_die 'working tree is not clean; refusing to update'
-  git -C "$ROR_HOME" pull --ff-only
+  case "${1:-}" in
+    --check|check)
+      cmd_update_check
+      ;;
+    '')
+      ror_have git || ror_die 'git is required for update'
+      [ -z "$(git -C "$ROR_HOME" status --porcelain)" ] || ror_die 'working tree is not clean; refusing to update'
+      git -C "$ROR_HOME" pull --ff-only
+      ;;
+    *) ror_die 'update usage: ror update [--check]' ;;
+  esac
 }
 
 case "${1:-help}" in
   help|-h|--help) usage ;;
   doctor) shift; cmd_doctor "$@" ;;
   info) cmd_info ;;
+  version|--version|-V) cmd_version ;;
   path) shift; cmd_path "$@" ;;
   need) shift; cmd_need "$@" ;;
+  workflow|workflows) shift; cmd_workflow "$@" ;;
   find|search) shift; cmd_find "$@" ;;
   cheat|cheatsheet) shift; cmd_cheat "$@" ;;
   diagnose|diag) shift; cmd_diagnose "$@" ;;
@@ -550,6 +656,7 @@ case "${1:-help}" in
   new) shift; cmd_new "$@" ;;
   pkg) shift; cmd_pkg "$@" ;;
   dotfiles) shift; cmd_dotfiles "$@" ;;
-  update) cmd_update ;;
+  self-test|selftest) cmd_self_test ;;
+  update) shift; cmd_update "$@" ;;
   *) usage; exit 1 ;;
 esac

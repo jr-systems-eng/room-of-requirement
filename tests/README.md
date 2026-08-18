@@ -1,6 +1,6 @@
 # Tests
 
-Room of Requirement tests protect the portability, rollback, discovery, and safety promises of the repository.
+Room of Requirement tests protect the portability, rollback, discovery, reuse, and safety promises of the repository.
 
 ## CLI smoke tests
 
@@ -10,15 +10,19 @@ Run the general CLI smoke suite with:
 bash tests/smoke/ror-smoke.sh
 ```
 
-It checks core discovery, reference, package-profile, diagnostic, collection, and read-only dotfile interfaces without intentionally changing system configuration.
+It checks core discovery, reference, package-profile, diagnostic, collection, template-copy, and read-only dotfile interfaces without intentionally changing system configuration.
 
-Phase 5 smoke coverage also verifies:
+Current smoke coverage verifies:
 
-- curated `ror need` topic listing;
-- topic aliasing such as `certificate` -> `tls`;
-- expected related-resource output for curated topics;
+- curated `ror need` topic listing and aliases;
+- expected related-resource output for SSH, TLS, NFS, performance, and Kubernetes;
+- **every curated resource path in `lib/resources.sh` actually exists**;
 - the package-profile list line structure;
-- portable `SUMMARY` sections from DNS and Java diagnostics.
+- portable `SUMMARY` sections from DNS and Java diagnostics;
+- `ror new` can copy representative Ansible, Kubernetes, and Terraform templates;
+- system and baseline collection output is created successfully.
+
+The curated-path check exists because `ror need` intentionally hides missing resource paths from normal output. CI must fail if the relationship map points at a stale/renamed file.
 
 ## Dotfile lifecycle smoke tests
 
@@ -28,13 +32,7 @@ Run the managed-dotfile round-trip suite with:
 bash tests/smoke/dotfiles-smoke.sh
 ```
 
-This suite creates a disposable temporary `HOME` and state directory, then verifies that Bash/Readline, Git, and tmux managed fragments can be installed and restored safely. It checks that:
-
-- existing host files receive the expected marked include/source blocks;
-- managed fragments match the repository sources;
-- rollback restores original host files exactly;
-- managed files that did not exist before installation are removed on restore;
-- backup snapshots remain discoverable after rollback.
+This suite creates a disposable temporary `HOME` and state directory, then verifies that Bash/Readline, Git, and tmux managed fragments can be installed and restored safely. It checks that existing files receive the marked include/source blocks, managed fragments match repository sources, rollback restores originals, newly created managed files are removed on restore, and backup snapshots remain discoverable.
 
 The test never intentionally modifies the real user or CI-runner home configuration.
 
@@ -51,3 +49,5 @@ Only local repository links are checked. External URLs are deliberately not fetc
 ## CI
 
 GitHub Actions additionally checks shell syntax, error-level ShellCheck findings, YAML, JSON, PowerShell parsing, Ubuntu/Windows CLI smoke tests, Ubuntu/Windows dotfile lifecycle tests, and full-history secret scanning.
+
+See [Resource Authoring Guide](../docs/resource-authoring.md) for the definition-of-done checklist when adding new library content.

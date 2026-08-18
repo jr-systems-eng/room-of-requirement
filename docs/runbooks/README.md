@@ -5,15 +5,20 @@ Safe, repeatable troubleshooting and administration procedures. Runbooks are for
 ## Administration
 
 - [Configure an NFS share](configure-nfs-share.md)
+- [Extend an LVM filesystem](extend-lvm-filesystem.md)
 
 ## Troubleshooting
 
 - [systemd service](troubleshoot-systemd-service.md)
 - [SSH / SFTP connection](troubleshoot-ssh-connection.md)
 - [TLS certificate / chain](troubleshoot-tls-certificate.md)
-- [Java PKIX / truststore](troubleshoot-java-pkix.md)
-- [Full filesystem](troubleshoot-full-filesystem.md)
+- [DNS resolution](troubleshoot-dns-resolution.md)
 - [Network connectivity](investigate-network-connectivity.md)
+- [Java PKIX / truststore](troubleshoot-java-pkix.md)
+- [Tomcat startup](troubleshoot-tomcat-startup.md)
+- [Full filesystem](troubleshoot-full-filesystem.md)
+- [High system load](investigate-high-load.md)
+- [Memory pressure / OOM](investigate-memory-pressure.md)
 
 ## Runbook contract
 
@@ -27,4 +32,8 @@ New runbooks should generally contain:
 6. Validation.
 7. Rollback considerations when changes are involved.
 
-Use `ror find --type runbook <term>` to locate a procedure.
+Administration runbooks may be more procedural, but should still explain what each stage proves and how to validate the result.
+
+See [Resource Authoring Guide](../resource-authoring.md) for the full repository maintenance checklist.
+
+Use `ror find --type runbook <term>` or `ror need <topic>` to locate a procedure.

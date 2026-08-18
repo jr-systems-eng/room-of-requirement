@@ -2,6 +2,49 @@
 
 Notable changes to Room of Requirement are recorded here. The project uses the changelog to track capability-level changes rather than every individual file edit.
 
+## v0.7.0 - 2026-08-18
+
+### Added
+
+- Phase 6 reusable engineering asset expansion.
+- New troubleshooting/administration runbooks for:
+  - DNS resolution
+  - Tomcat startup failures
+  - LVM/filesystem extension
+  - high system load
+  - memory pressure/OOM investigation
+- Expanded Ansible templates for INI inventory, rolling/serial changes, and read-only audit evidence collection.
+- Dockerfile template with non-root and healthcheck placeholders.
+- Kubernetes templates for Namespace, ConfigMap, Ingress, and PersistentVolumeClaim in addition to existing Deployment/Service templates.
+- GitHub templates for ShellCheck CI, ansible-lint CI, and pull-request validation/risk/rollback review.
+- Portable single-file Terraform module template.
+- `docs/resource-authoring.md` defining resource type, safety, runbook/template, discovery, documentation, and validation contracts.
+- New curated `ror need` topics for NFS, performance, Terraform, and GitHub.
+- Topic aliases including `nfs4` -> `nfs`, `memory`/`load` -> `performance`, `tf` -> `terraform`, and `actions` -> `github`.
+- Smoke coverage that verifies every curated resource path exists and representative Phase 6 templates copy successfully with `ror new`.
+
+### Changed
+
+- NFS now has its own curated Room topic instead of being folded into the broad storage topic.
+- DNS, Tomcat, storage, Kubernetes, Ansible, and container topics now surface the new Phase 6 assets.
+- Kubernetes curated template paths now correctly use the repository's `templates/k8s/` directory.
+- Network/DNS curated runbook relationships now point to the actual `investigate-network-connectivity.md` path.
+- Root README, runbook/template indexes, architecture, tests documentation, and resource-authoring guidance now describe the expanded reuse model.
+- Populated runbook/Kubernetes/GitHub/Terraform directories no longer carry placeholder `.gitkeep` files.
+
+### Safety
+
+- New runbooks preserve the inspect-before-mutate pattern and include validation/rollback guidance for changes.
+- New templates contain placeholders rather than real credentials/environment identity and explicitly avoid treating ConfigMaps/Terraform source as secret storage.
+- Curated relationship integrity is now test-enforced so stale paths cannot be silently hidden by `ror need` output filtering.
+
+## v0.6.1 - 2026-08-18
+
+### Added
+
+- NFS administration runbook covering NFSv4 server exports, client mounting, persistence with `/etc/fstab`/systemd automount, UID/GID permission behavior, validation, troubleshooting, and rollback.
+- Runbook index entry and initial `ror need nfs` discoverability through the storage topic.
+
 ## v0.6.0 - 2026-08-16
 
 ### Added

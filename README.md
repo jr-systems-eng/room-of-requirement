@@ -16,11 +16,11 @@ A portable engineering toolbox for unfamiliar systems: quick references, diagnos
 | Remember a command or concept | [`cheat-sheets/`](cheat-sheets/README.md) |
 | Copy/paste a reusable fragment | [`snippets/`](snippets/README.md) |
 | Collect targeted troubleshooting evidence | [`scripts/diagnostics/`](scripts/diagnostics/README.md) |
-| Follow a safe troubleshooting procedure | [`docs/runbooks/`](docs/runbooks/README.md) |
-| Create something from a known-good starting point | [`templates/`](templates/README.md) |
+| Follow a safe procedure | [`docs/runbooks/`](docs/runbooks/README.md) |
+| Create from a known-good starting point | [`templates/`](templates/README.md) |
+| Add a new reusable resource correctly | [`docs/resource-authoring.md`](docs/resource-authoring.md) |
 | Set up a portable workstation/jumpbox | [`docs/setup/portable-workstation.md`](docs/setup/portable-workstation.md) |
 | Set up ROR on a new machine | [`bootstrap/`](bootstrap/README.md) |
-| Keep repository-local machine state | [`local/`](local/README.md) |
 
 ## The `ror` command
 
@@ -28,29 +28,23 @@ A portable engineering toolbox for unfamiliar systems: quick references, diagnos
 
 ### Ask the Room
 
-`ror need` provides a curated view of the resources related to a problem instead of making you remember which directory contains them.
+`ror need` provides a curated view of related resources so you do not have to remember which directory contains them.
 
 ```bash
 ror need list
 ror need ssh
 ror need certificate
-ror need storage
-ror need java
+ror need nfs
+ror need performance
+ror need tomcat
 ror need kubernetes
+ror need terraform
+ror need github
 ```
 
-For a curated topic, ROR shows:
+Curated topics show a purpose, recommended first commands, and related references, diagnostics, runbooks, snippets, templates, guides, or managed configuration. Aliases normalize common wording such as `certificate` -> `tls`, `sftp` -> `ssh`, `memory` -> `performance`, `nfs4` -> `nfs`, `k8s` -> `kubernetes`, and `tf` -> `terraform`.
 
-- what the topic covers;
-- recommended first commands;
-- related references/cheat sheets;
-- diagnostic collectors;
-- troubleshooting runbooks;
-- useful snippets, templates, or managed configuration when applicable.
-
-Aliases map common wording to the same topic. For example, `certificate`, `cert`, `ssl`, and `openssl` all map to the `tls` topic; `sftp` maps to `ssh`; and `pkix`/`keystore` map to `java`.
-
-The relationship map is deliberately deterministic and lives in `lib/resources.sh`. `ror need` does not use fuzzy inference or claim to diagnose a problem. If a topic does not have a curated map yet, it falls back to normal repository search.
+The relationship map is deterministic in `lib/resources.sh`; `ror need` does not use fuzzy diagnosis. Unknown topics fall back to normal repository search.
 
 ### First look at a machine
 
@@ -60,9 +54,7 @@ ror doctor --install-suggestions
 ror collect baseline
 ```
 
-`ror doctor` summarizes platform/tooling information and highlights common host-health signals such as root-filesystem pressure, Linux memory pressure, failed systemd units, time synchronization, firewall/MAC visibility, proxy presence, reboot status, and managed-dotfile state.
-
-`ror collect baseline` creates a timestamped, read-only intake report combining system, network, storage, resolver, security, time-sync, service, journal, kernel-package, and reboot context. It avoids dumping process environments and reports only the presence of proxy variables rather than their values.
+`ror doctor` summarizes platform/tooling and common host-health signals. `ror collect baseline` creates a timestamped, read-only intake report with system, network, storage, resolver, security, time-sync, service, journal, kernel-package, and reboot context while avoiding likely-secret process environments.
 
 ### Discover
 
@@ -75,7 +67,7 @@ ror search java
 ror cheat subnetting
 ```
 
-Use `ror need` when a curated problem view is useful; use `ror find` when you want literal repository search.
+Use `ror need` for a curated problem view; use `ror find` for literal repository search.
 
 ### Diagnose and collect
 
@@ -92,19 +84,44 @@ ror diagnose java 12345
 ror diagnose tomcat tomcat
 ```
 
-High-value targeted collectors now end with a conservative `SUMMARY` section. These summaries report directly observable state such as service activity, config validation, listener presence, certificate verification/expiry, DNS response status, filesystem/inode pressure, Java process presence, and selected high-signal log patterns.
+High-value targeted collectors end with conservative `SUMMARY` sections. A warning means **inspect this evidence**, not **ROR has proven the root cause**. Raw evidence remains visible above the summary.
 
-A warning means **inspect this evidence**, not **ROR has proven the root cause**. The full raw evidence remains above the summary so the interpretation is always inspectable.
+Save the same output as a handoff file with `ror collect <target>`. Diagnostics are read-only by contract.
 
-Save the same diagnostic output as a timestamped handoff file:
+## Runbooks
+
+The runbook library now covers both administration and troubleshooting. Examples:
 
 ```bash
-ror collect baseline
-ror collect systemd sshd
-ror collect tls example.com:443
+ror need nfs
+ror find --type runbook lvm
+ror find --type runbook dns
+ror find --type runbook tomcat
+ror find --type runbook load
+ror find --type runbook memory
 ```
 
-Diagnostics are read-only by contract. Collection files are written to the current directory unless `ROR_COLLECT_OUTPUT` is set.
+Current high-value procedures include NFS configuration, LVM/filesystem growth, systemd/SSH/TLS/DNS/Tomcat troubleshooting, full filesystems, network connectivity, Java PKIX, high load, and memory pressure/OOM investigation.
+
+See [Runbooks](docs/runbooks/README.md).
+
+## Reuse/templates
+
+Phase 6 substantially expands the copy-based asset library.
+
+```bash
+ror new ansible/rolling-change.yml ./rolling-change.yml
+ror new ansible/inventory.ini ./inventory.ini
+ror new docker/Dockerfile ./Dockerfile
+ror new k8s/ingress.yaml ./ingress.yaml
+ror new k8s/persistent-volume-claim.yaml ./pvc.yaml
+ror new terraform/module.tf ./main.tf
+ror new github/workflow-shellcheck.yml ./.github/workflows/shellcheck.yml
+```
+
+Template families now include Ansible, Bash, Docker/Compose, Kubernetes, GitHub Actions/PR review, Terraform, logrotate, and systemd. `ror new` copies one file, refuses overwrite, and does not substitute placeholders yet; replace every `__TOKEN__` before use.
+
+See [Templates](templates/README.md).
 
 ## Portable environment setup
 
@@ -116,73 +133,29 @@ ror pkg suggest linux-admin
 ror pkg install linux-admin
 ```
 
-Current profiles:
+Profiles: `minimal`, `troubleshooting`, `networking`, `linux-admin`, `development`, `ansible`, `containers`, `kubernetes`, and `cloud`.
 
-| Profile | Intent |
-|---|---|
-| `minimal` | Git, curl, jq |
-| `troubleshooting` | General host/incident troubleshooting |
-| `networking` | DNS/TCP/TLS/packet/path troubleshooting |
-| `linux-admin` | Broad Linux admin/jumpbox toolkit |
-| `development` | Git/Python/terminal development basics |
-| `ansible` | Distro-packaged Ansible control-node basics |
-| `containers` | Container prerequisites/runtime where portable |
-| `kubernetes` | Common prerequisites; kubectl/helm reported separately |
-| `cloud` | Common prerequisites; gcloud/govc reported separately |
-
-`pkg suggest` is read-only. `pkg install` is explicit and mutating. Package names are translated where needed (for example `dig` -> `bind-utils` on DNF systems and `dnsutils` on APT systems).
-
-Vendor/platform-specific tools that cannot be installed portably are reported separately rather than silently guessed.
+`pkg suggest` is read-only. `pkg install` is explicit and mutating. Vendor/platform-specific tools are reported separately rather than silently installed through guessed procedures.
 
 ### Managed dotfiles
-
-Review first:
 
 ```bash
 ror dotfiles status
 ror dotfiles diff all
-ror dotfiles diff bash
-```
-
-Install explicitly:
-
-```bash
 ror dotfiles install bash
 ror dotfiles install git
 ror dotfiles install tmux
-ror dotfiles install all
-```
-
-ROR does **not** replace entire existing config files. It installs managed fragments under `~/.config/ror/` and adds small marked include/source blocks to the host's Bash/Readline/Git/tmux/PowerShell configuration.
-
-Every install creates a rollback snapshot first:
-
-```bash
 ror dotfiles backups
 ror dotfiles restore latest
-ror dotfiles restore <backup-id>
 ```
 
-Git identity, credentials, SSH keys/config, and machine-specific private settings are intentionally not managed automatically.
+ROR installs managed fragments under `~/.config/ror/` and adds small marked include/source blocks instead of replacing whole configuration files. Every install creates a rollback snapshot first. Git identity, credentials, SSH keys/config, and machine-specific private settings remain outside automatic management.
 
 See [Dotfiles](dotfiles/README.md) and [Portable Workstation Setup](docs/setup/portable-workstation.md).
 
-## Reuse
-
-```bash
-ror new ansible/playbook.yml ./playbook.yml
-ror new docker/compose.yaml ./compose.yaml
-ror new systemd/service.service ./myapp.service
-ror new systemd/timer.timer ./myapp.timer
-```
-
-`ror new` refuses to overwrite an existing destination.
-
 ## Bootstrap
 
-### Linux/macOS/WSL
-
-Safe default:
+Safe default on Linux/macOS/WSL:
 
 ```bash
 git clone <this-repository>
@@ -190,33 +163,7 @@ cd room-of-requirement
 bash bootstrap/install.sh
 ```
 
-Explicit workstation setup can be combined when desired:
-
-```bash
-bash bootstrap/install.sh \
-  --profile linux-admin \
-  --dotfiles bash \
-  --dotfiles git \
-  --dotfiles tmux
-```
-
-### Windows
-
-From PowerShell after cloning:
-
-```powershell
-.\bootstrap\install.ps1
-```
-
-Or explicitly request setup:
-
-```powershell
-.\bootstrap\install.ps1 -PackageProfile linux-admin -Dotfiles bash,git
-```
-
-The Windows wrapper uses an available Bash environment such as Git Bash or WSL for the shared ROR CLI.
-
-Plain bootstrap never silently installs packages or dotfiles.
+Explicit workstation setup can add requested profiles/dotfiles. Windows uses `bootstrap/install.ps1` and an available Bash environment such as Git Bash or WSL. Plain bootstrap never silently installs packages or dotfiles.
 
 ## Current diagnostic targets
 
@@ -225,29 +172,21 @@ Plain bootstrap never silently installs packages or dotfiles.
 | `baseline` | General-purpose read-only host intake/handoff bundle |
 | `system` | OS, kernel, uptime, CPU, memory, failed services, core state |
 | `network` | addresses, routes, DNS config, listeners, basic network state |
-| `systemd` | service status, unit definition, process, recent journal, observed-state summary |
+| `systemd` | service status, unit definition, process, journal, observed-state summary |
 | `ssh` | sshd state, listener/config validation, auth/crypto config, high-signal log patterns |
-| `tls` | remote handshake, certificate names/expiry, chain verification, observed-state summary |
+| `tls` | remote handshake, certificate names/expiry, chain verification, summary |
 | `dns` | resolver config/status, optional lookup, DNS response summary |
-| `storage` | block devices, filesystems, inodes, mounts, LVM, large paths, open-deleted files, pressure summary |
-| `java` | Java runtime/process/JVM metadata and process-presence summary without dumping environments |
+| `storage` | devices, filesystems, inodes, mounts, LVM, large paths, open-deleted files, pressure summary |
+| `java` | Java runtime/process/JVM metadata without dumping environments |
 | `tomcat` | service/process/log context plus selected Java/Tomcat failure patterns |
 
 ## Trust and validation
 
-Changes on `main` are guarded by GitHub Actions checks for:
+Changes on `main` are guarded by GitHub Actions checks for Bash syntax/ShellCheck errors, YAML/JSON, local Markdown links, PowerShell parsing, Linux/Windows CLI smoke tests, dotfile lifecycle tests, and full-history secret scanning.
 
-- Bash syntax and error-level ShellCheck findings
-- YAML and JSON validation
-- local Markdown-link validation
-- PowerShell parsing
-- ROR CLI smoke tests on Linux and Windows runners
-- curated `ror need` topic/resource behavior
-- diagnostic `SUMMARY` presence for portable smoke-test targets
-- isolated dotfile install/restore lifecycle tests on Linux and Windows runners
-- full-history secret scanning
+Phase 6 adds relationship-integrity coverage: every path declared by `ror need` must exist, and representative new Ansible/Kubernetes/Terraform templates must copy successfully with `ror new`.
 
-The local smoke suite can also be run manually:
+Run locally:
 
 ```bash
 bash tests/smoke/ror-smoke.sh
@@ -255,7 +194,7 @@ bash tests/smoke/dotfiles-smoke.sh
 python3 tests/validate_markdown_links.py
 ```
 
-See [`tests/`](tests/README.md) for the validation contract.
+See [Tests](tests/README.md) and [Resource Authoring Guide](docs/resource-authoring.md).
 
 ## Design principles
 
@@ -264,11 +203,11 @@ See [`tests/`](tests/README.md) for the validation contract.
 - **OS-aware:** platform-specific behavior belongs behind common interfaces.
 - **Local stays local:** secrets and machine-specific settings are not committed.
 - **Discoverable:** `ror need` provides curated relationships while `ror find` provides literal search.
-- **Inspectable:** diagnostic interpretation sits beside the raw evidence and never hides how a conclusion was reached.
-- **Reusable:** capture procedures and patterns once rather than reconstructing them during every incident.
-- **Trustworthy:** automated validation should catch portability, syntax, link, rollback, and secret-leak regressions before they become normal tooling.
+- **Inspectable:** interpretation sits beside raw evidence.
+- **Reusable:** capture procedures and starting points once rather than rebuilding them during every incident/project.
+- **Trustworthy:** automated validation should catch portability, syntax, link, relationship, rollback, and secret-leak regressions.
 
-See [Philosophy](docs/philosophy.md) and [Architecture](docs/architecture.md) for the repository contracts and design model.
+See [Philosophy](docs/philosophy.md), [Architecture](docs/architecture.md), and [Resource Authoring Guide](docs/resource-authoring.md).
 
 ## Quick links
 
@@ -277,6 +216,7 @@ See [Philosophy](docs/philosophy.md) and [Architecture](docs/architecture.md) fo
 - [Diagnostics](scripts/diagnostics/README.md)
 - [Runbooks](docs/runbooks/README.md)
 - [Templates](templates/README.md)
+- [Resource Authoring](docs/resource-authoring.md)
 - [Dotfiles](dotfiles/README.md)
 - [Portable Workstation Setup](docs/setup/portable-workstation.md)
 - [Bootstrap](bootstrap/README.md)

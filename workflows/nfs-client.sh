@@ -92,8 +92,14 @@ if [ -e "$mountpoint" ]; then
     preflight_failed=1
   elif workflow_have findmnt && findmnt -rn -M "$mountpoint" >/dev/null 2>&1; then
     current_mount="$(findmnt -rn -M "$mountpoint" -o SOURCE,FSTYPE 2>/dev/null || true)"
-    workflow_item INFO 'existing mount' "${current_mount:-mounted}"
-    mount_exists='yes'
+    current_source="$(printf '%s\n' "$current_mount" | awk '{print $1}')"
+    if [ "$current_source" = "$source_spec" ]; then
+      workflow_item OK 'existing mount' "$current_mount"
+      mount_exists='yes'
+    else
+      workflow_item FAIL 'existing mount' "mountpoint is already mounted from ${current_mount:-unknown source}"
+      preflight_failed=1
+    fi
   elif [ -n "$(find "$mountpoint" -mindepth 1 -maxdepth 1 -print -quit 2>/dev/null)" ]; then
     workflow_item FAIL 'mountpoint contents' 'directory is non-empty and is not currently a mountpoint'
     preflight_failed=1
@@ -134,7 +140,7 @@ fi
 workflow_section 'Plan'
 printf '  1. Ensure mountpoint exists: %s\n' "$mountpoint"
 if [ "$mount_exists" = 'yes' ]; then
-  printf '  2. Leave the existing mount untouched and validate it against the requested source.\n'
+  printf '  2. Leave the matching existing mount untouched.\n'
 else
   printf '  2. Mount %s at %s as NFS with options: %s\n' "$source_spec" "$mountpoint" "$options"
 fi
@@ -172,6 +178,11 @@ fi
 actual="$(findmnt -rn -M "$mountpoint" -o SOURCE,FSTYPE,OPTIONS 2>/dev/null || true)"
 if [ -z "$actual" ]; then
   workflow_item FAIL 'mount validation' 'findmnt did not confirm the mountpoint'
+  exit 1
+fi
+actual_source="$(printf '%s\n' "$actual" | awk '{print $1}')"
+if [ "$actual_source" != "$source_spec" ]; then
+  workflow_item FAIL 'mount validation' "expected $source_spec but findmnt reports $actual"
   exit 1
 fi
 workflow_item OK 'mount validation' "$actual"

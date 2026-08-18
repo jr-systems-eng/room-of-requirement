@@ -2,6 +2,10 @@
 
 Safe, repeatable troubleshooting and administration procedures. Runbooks are for situations where the order of operations and interpretation matter—not just remembering a command.
 
+## Administration
+
+- [Configure an NFS share](configure-nfs-share.md)
+
 ## Troubleshooting
 
 - [systemd service](troubleshoot-systemd-service.md)

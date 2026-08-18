@@ -14,7 +14,7 @@ ror_need_canonical_topic() {
     dns|resolver|resolution) printf 'dns\n' ;;
     network|networking|connectivity|route|routing) printf 'network\n' ;;
     systemd|systemctl|service|services|journal|journalctl) printf 'systemd\n' ;;
-    storage|disk|disks|filesystem|filesystems|fs|lvm) printf 'storage\n' ;;
+    storage|disk|disks|filesystem|filesystems|fs|lvm|nfs) printf 'storage\n' ;;
     java|jvm|pkix|truststore|truststores|keystore|keystores) printf 'java\n' ;;
     tomcat|catalina) printf 'tomcat\n' ;;
     kubernetes|k8s|kubectl) printf 'kubernetes\n' ;;
@@ -33,7 +33,7 @@ ror_need_description() {
     dns) printf 'Resolver configuration, name resolution, DNS responses, and lookup troubleshooting.\n' ;;
     network) printf 'Host networking, routes, listeners, DNS context, and general connectivity.\n' ;;
     systemd) printf 'systemd service state, unit configuration, exit status, and journal troubleshooting.\n' ;;
-    storage) printf 'Filesystem capacity, inodes, mounts, LVM, large paths, and deleted-open files.\n' ;;
+    storage) printf 'Filesystem capacity, mounts, NFS, LVM, inodes, large paths, and deleted-open files.\n' ;;
     java) printf 'Java/JVM process inspection, keystores, PKIX trust failures, and runtime context.\n' ;;
     tomcat) printf 'Tomcat service/process/log inspection with Java and PKIX follow-through.\n' ;;
     kubernetes) printf 'kubectl workflows and reusable Kubernetes deployment/service starting points.\n' ;;
@@ -61,7 +61,7 @@ ror_need_commands() {
       printf '%s\n' 'ror diagnose systemd <service>' 'ror collect systemd <service>' 'ror find --type runbook systemd'
       ;;
     storage)
-      printf '%s\n' 'ror diagnose storage' 'ror collect storage' 'ror find --type runbook filesystem'
+      printf '%s\n' 'ror diagnose storage' 'ror collect storage' 'ror find --type runbook nfs'
       ;;
     java)
       printf '%s\n' 'ror diagnose java [pid]' 'ror collect java <pid>' 'ror find --type runbook java'
@@ -129,6 +129,7 @@ ror_need_resources() {
         'Reference|cheat-sheets/linux/storage-filesystems.md|Block device, filesystem, mount, and LVM reference' \
         'Diagnostic|scripts/diagnostics/storage.sh|Capacity, inode, mount, LVM, large-path, and open-file checks' \
         'Runbook|docs/runbooks/troubleshoot-full-filesystem.md|Full-filesystem troubleshooting procedure' \
+        'Runbook|docs/runbooks/configure-nfs-share.md|NFSv4 server export and client mount procedure' \
         'Snippet|snippets/one-liners.md|Reusable storage/admin one-liners'
       ;;
     java)

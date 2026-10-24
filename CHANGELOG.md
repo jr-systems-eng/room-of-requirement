@@ -2,6 +2,17 @@
 
 Notable changes to Room of Requirement are recorded here. The project uses the changelog to track capability-level changes rather than every individual file edit.
 
+## Unreleased
+
+### Added
+
+- Agent Standards Kit under `templates/agents/`: a project `AGENTS.md` starting point (`project-AGENTS.md`), a work-order template, a handoff template, and usage notes for instruction layers, local versus Cloud Agent availability, and bounded completion.
+- An `agents` Room topic so `ror need agents` discovers the kit.
+
+### Changed
+
+- Template index, root README, architecture reuse notes, and resource-authoring guidance point at the kit.
+
 ## v0.9.0 - 2026-08-18
 
 ### Added

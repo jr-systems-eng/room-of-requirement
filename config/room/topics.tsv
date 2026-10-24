@@ -30,3 +30,5 @@ terraform|tf,iac|Portable Terraform module starting points and infrastructure-as
 github|gha,actions,workflow,workflows|Reusable GitHub Actions workflows and pull-request review scaffolding.|git,ansible
 
 git||Everyday Git reference, repository health, snippets, and portable Git configuration.|github
+
+agents|agent|Portable starting points for repository agent instructions, work orders, and handoffs.|git,github

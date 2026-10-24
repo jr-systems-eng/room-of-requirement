@@ -115,6 +115,8 @@ Templates should:
 - include comments only where they materially help safe adaptation;
 - work as individual files because `ror new` currently copies one template file at a time.
 
+Agent-instruction templates live under `templates/agents/`. Copy `project-AGENTS.md` to another repository root as `AGENTS.md`. Copy a work order or handoff for the task that needs it. Usage rules for instruction layers, Cloud Agent availability, and extending a copy stay in [`templates/agents/README.md`](../templates/agents/README.md). A destination project adds its own short bullets and links to its authoritative docs.
+
 ## Room metadata integration
 
 Topic knowledge lives under [`../config/room/`](../config/room/), not in topic-specific shell `case` statements.

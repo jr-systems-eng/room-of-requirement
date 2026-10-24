@@ -23,6 +23,7 @@ A portable engineering toolbox for unfamiliar systems: quick references, diagnos
 | Remember a command or concept | [`cheat-sheets/`](cheat-sheets/README.md) |
 | Follow a detailed manual procedure | [`docs/runbooks/`](docs/runbooks/README.md) |
 | Create from a known-good starting point | [`templates/`](templates/README.md) |
+| Start agent instructions, a work order, or a handoff | [`templates/agents/`](templates/agents/README.md) |
 | Add a reusable resource correctly | [`docs/resource-authoring.md`](docs/resource-authoring.md) |
 | Check the installed ROR build | `ror version` / `ror self-test` |
 | Set up ROR on a new machine | [`bootstrap/`](bootstrap/README.md) |
@@ -55,6 +56,7 @@ ror need docker
 ror need kubernetes
 ror need terraform
 ror need github
+ror need agents
 ```
 
 Example:
@@ -279,9 +281,10 @@ ror new docker/Dockerfile ./Dockerfile
 ror new k8s/ingress.yaml ./ingress.yaml
 ror new terraform/module.tf ./main.tf
 ror new github/workflow-shellcheck.yml ./.github/workflows/shellcheck.yml
+ror new agents/project-AGENTS.md ./AGENTS.md
 ```
 
-Template families include Ansible, Bash, Docker/Compose, Kubernetes, GitHub Actions/PR review, Terraform, logrotate, and systemd. `ror new` copies one file, refuses overwrite, and does not substitute placeholders yet; replace every `__TOKEN__` before use.
+Template families include Ansible, Bash, Docker/Compose, Kubernetes, GitHub Actions/PR review, Terraform, logrotate, systemd, and agent standards. `ror new` copies one file, refuses overwrite, and does not substitute placeholders yet; replace every `__TOKEN__` before use. Agent-instruction usage rules live in [`templates/agents/README.md`](templates/agents/README.md).
 
 ## Portable environment setup
 

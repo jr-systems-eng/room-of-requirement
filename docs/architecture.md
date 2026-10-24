@@ -210,6 +210,8 @@ Doctor findings are advisory.
 
 Templates are single-file starting points because `ror new` currently copies one file at a time. They use `__TOKEN__` placeholders, contain no real credentials/environment identity, and bias toward safe/least-privilege defaults.
 
+`templates/agents/` holds starting points for a project `AGENTS.md`, a work order, and a handoff. The project template is stored as `project-AGENTS.md` so this repository does not gain a nested `AGENTS.md` instruction file. Usage rules for that kit live in `templates/agents/README.md`.
+
 Runbooks complement templates and workflows:
 
 - templates answer **what should I start from?**

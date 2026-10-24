@@ -99,3 +99,8 @@ git|Reference|cheat-sheets/development/git.md|Git command/workflow reference
 git|Snippet|snippets/git.md|Reusable Git fragments
 git|Dotfile|dotfiles/git/gitconfig|Portable managed Git defaults
 git|Dotfile|dotfiles/git/gitignore_global|Portable global ignore defaults
+
+agents|Guide|templates/agents/README.md|When to use the kit and how a project extends a copy
+agents|Template|templates/agents/project-AGENTS.md|Standing repository agent instructions, copied to the destination as AGENTS.md
+agents|Template|templates/agents/work-order.md|Bounded task assignment with stop conditions
+agents|Template|templates/agents/handoff.md|Task completion record whose checkpoint leaves the next action unstarted

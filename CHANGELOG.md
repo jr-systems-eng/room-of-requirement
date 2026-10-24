@@ -6,6 +6,8 @@ Notable changes to Room of Requirement are recorded here. The project uses the c
 
 ### Added
 
+- Canonical documentation hub (`docs/README.md`), task-oriented full-feature user guide, CLI/feature command reference, and 12 scenario-driven operational recipes with expected results, safe apply boundaries, verification and troubleshooting.
+- Companion personal Obsidian navigation and daily-use notes (in the private `obsidian-backup` repository) linking to authoritative ROR docs rather than duplicating implementation contracts.
 - End-to-end AI agent standards operating guide covering Cursor rules, repository onboarding, bounded work orders, audit, review, Cloud Agent freshness, and recovery.
 - Read-only `scripts/git/audit-agent-standards.sh` for auditing root `AGENTS.md` across sibling clones, with explicit exclusions and optional strict checks.
 - Agent Standards Kit under `templates/agents/`: a project `AGENTS.md` starting point (`project-AGENTS.md`), a work-order template, a handoff template, and usage notes for instruction layers, local versus Cloud Agent availability, and bounded completion.

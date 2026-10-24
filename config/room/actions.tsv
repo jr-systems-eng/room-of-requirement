@@ -70,3 +70,4 @@ git|ror dotfiles diff git
 agents|ror find --type template agents
 agents|ror new agents/project-AGENTS.md ./AGENTS.md
 agents|ror new agents/work-order.md ./work-order.md
+agents|ror run git/audit-agent-standards.sh --root /path/to/repos --strict

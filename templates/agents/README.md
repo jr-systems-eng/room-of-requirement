@@ -4,6 +4,8 @@ Portable starting points for AI agent work in a repository. Copy a template into
 
 `ror new` copies one file and leaves every `__TOKEN__` unchanged. The files use placeholders in place of project names, owners, and paths.
 
+For the **full setup-to-PR operating procedure**, including new workstations, Cursor workspace choice, verification, and an audit walkthrough, see [AI Agent Standards — Setup, Operation, and Repository Rollout](../../docs/setup/agent-standards-workflow.md).
+
 ## When to use each template
 
 | Template | Copy it when | Destination |

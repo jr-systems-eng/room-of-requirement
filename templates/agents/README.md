@@ -76,3 +76,14 @@ Carry out the work the current request, the active work order, and repository in
 Stop at the work order's completion checkpoint. Write a handoff when the task asked for one. State one recommended next action, and leave that action unstarted. The next task begins when a new request or work order authorizes it.
 
 Pause inside an authorized task for a named approval dependency, a listed stop condition, or a step outside the in-scope list.
+
+## Auditing local checkouts
+
+The read-only [agent standards audit](../../scripts/git/audit-agent-standards.sh) inspects direct child Git repositories of a chosen directory. It classifies each root `AGENTS.md` as `TRACKED`, `LOCAL_ONLY`, `MODIFIED`, or `MISSING`, and flags unresolved `__TOKEN__` placeholders. The script never touches Git metadata, changes files, or contacts GitHub.
+
+```bash
+bash scripts/git/audit-agent-standards.sh --root /path/to/repos
+bash scripts/git/audit-agent-standards.sh --root /path/to/repos --exclude fork-one,archive-two --strict
+```
+
+Exclude upstream forks, empty repositories, or work-controlled projects when outside the personal rollout. Strict mode returns a failure status for included repositories that are not clean and tracked. Publish repository-specific instructions through the project's own review/approval flow; never overwrite a local `AGENTS.md` automatically.

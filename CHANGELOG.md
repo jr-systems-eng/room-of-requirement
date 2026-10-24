@@ -6,12 +6,14 @@ Notable changes to Room of Requirement are recorded here. The project uses the c
 
 ### Added
 
+- End-to-end AI agent standards operating guide covering Cursor rules, repository onboarding, bounded work orders, audit, review, Cloud Agent freshness, and recovery.
 - Read-only `scripts/git/audit-agent-standards.sh` for auditing root `AGENTS.md` across sibling clones, with explicit exclusions and optional strict checks.
 - Agent Standards Kit under `templates/agents/`: a project `AGENTS.md` starting point (`project-AGENTS.md`), a work-order template, a handoff template, and usage notes for instruction layers, local versus Cloud Agent availability, and bounded completion.
 - An `agents` Room topic so `ror need agents` discovers the kit.
 
 ### Changed
 
+- Agent Room discovery, root README, kit reference, and portable workstation guide now link the full agent lifecycle and read-only audit usage.
 - Template index, root README, architecture reuse notes, and resource-authoring guidance point at the kit.
 
 ## v0.9.0 - 2026-08-18

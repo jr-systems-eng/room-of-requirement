@@ -13,6 +13,7 @@ See [`diagnostics/README.md`](diagnostics/README.md) for the diagnostic safety c
 | `system/port-process.sh` | Find local TCP/UDP listener/process ownership for a port | `ror run system/port-process.sh 8443` |
 | `networking/cert-expiry.sh` | Show leaf certificate identity/expiry and return warning status near expiry | `ror run networking/cert-expiry.sh example.com:443 30` |
 | `git/repo-health.sh` | Summarize branch, worktree, upstream and ahead/behind state without printing remote URLs | `ror run git/repo-health.sh .` |
+| `git/audit-agent-standards.sh` | Read-only status of `AGENTS.md` across sibling local Git clones, with optional strict mode | `bash scripts/git/audit-agent-standards.sh --root /path/to/repos` |
 | `kubernetes/workload-summary.sh` | Compact workload/pod summary for the current or named namespace | `ror run kubernetes/workload-summary.sh default` |
 
 ## Script contract

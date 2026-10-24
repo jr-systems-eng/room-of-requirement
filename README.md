@@ -8,6 +8,9 @@ A portable engineering toolbox for unfamiliar systems: quick references, diagnos
 
 | Need | Go to |
 |---|---|
+| Learn ROR from installation through daily usage | [User Guide](docs/user-guide.md) |
+| Look up every CLI command, target and option | [Command Reference](docs/command-reference.md) |
+| Follow concrete troubleshooting and change examples | [Operational Recipes](docs/operational-recipes.md) |
 | Bring together everything ROR knows about a topic | `ror need ssh` |
 | Quickly assess an unfamiliar host | `ror doctor` |
 | Capture a general-purpose handoff bundle | `ror collect baseline` |
@@ -414,6 +417,10 @@ See [Philosophy](docs/philosophy.md), [Architecture](docs/architecture.md), and 
 
 ## Quick links
 
+- [Documentation Index](docs/README.md)
+- [User Guide](docs/user-guide.md)
+- [Command & Feature Reference](docs/command-reference.md)
+- [Operational Recipes](docs/operational-recipes.md)
 - [Cheat Sheets](cheat-sheets/README.md)
 - [Snippets](snippets/README.md)
 - [Scripts](scripts/README.md)

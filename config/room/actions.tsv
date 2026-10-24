@@ -66,3 +66,7 @@ github|ror new github/pull_request_template.md ./.github/pull_request_template.m
 git|ror run git/repo-health.sh [path]
 git|ror cheat git
 git|ror dotfiles diff git
+
+agents|ror find --type template agents
+agents|ror new agents/project-AGENTS.md ./AGENTS.md
+agents|ror new agents/work-order.md ./work-order.md

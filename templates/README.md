@@ -42,6 +42,13 @@ Templates use `__TOKEN__` placeholders. `ror new` copies one file at a time and 
 
 - `terraform/module.tf` — single-file portable module skeleton suitable for copying to `main.tf` and expanding.
 
+## Agent standards
+
+- `agents/README.md` — when to use the kit, how Cursor instruction layers differ, and how a project extends a copy.
+- `agents/project-AGENTS.md` — standing repository instructions. Copy to the destination root as `AGENTS.md`.
+- `agents/work-order.md` — bounded task assignment with acceptance criteria and stop conditions.
+- `agents/handoff.md` — completion record. The checkpoint leaves the recommended next action unstarted.
+
 ## Create from a template
 
 ```bash
@@ -50,6 +57,7 @@ ror new docker/Dockerfile ./Dockerfile
 ror new k8s/ingress.yaml ./ingress.yaml
 ror new terraform/module.tf ./main.tf
 ror new github/workflow-shellcheck.yml ./.github/workflows/shellcheck.yml
+ror new agents/project-AGENTS.md ./AGENTS.md
 ```
 
 Review and replace every `__TOKEN__` before use.

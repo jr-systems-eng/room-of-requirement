@@ -24,6 +24,7 @@ A portable engineering toolbox for unfamiliar systems: quick references, diagnos
 | Follow a detailed manual procedure | [`docs/runbooks/`](docs/runbooks/README.md) |
 | Create from a known-good starting point | [`templates/`](templates/README.md) |
 | Start agent instructions, a work order, or a handoff | [`templates/agents/`](templates/agents/README.md) |
+| Follow the complete Cursor/agent onboarding and review process | [`docs/setup/agent-standards-workflow.md`](docs/setup/agent-standards-workflow.md) |
 | Add a reusable resource correctly | [`docs/resource-authoring.md`](docs/resource-authoring.md) |
 | Check the installed ROR build | `ror version` / `ror self-test` |
 | Set up ROR on a new machine | [`bootstrap/`](bootstrap/README.md) |
@@ -285,6 +286,20 @@ ror new agents/project-AGENTS.md ./AGENTS.md
 ```
 
 Template families include Ansible, Bash, Docker/Compose, Kubernetes, GitHub Actions/PR review, Terraform, logrotate, systemd, and agent standards. `ror new` copies one file, refuses overwrite, and does not substitute placeholders yet; replace every `__TOKEN__` before use. Agent-instruction usage rules live in [`templates/agents/README.md`](templates/agents/README.md).
+
+## AI agent setup and repository operations
+
+The [Agent Standards operational guide](docs/setup/agent-standards-workflow.md) covers the complete lifecycle: Cursor instruction layers, new/existing repository setup, work orders, validation, review and handoff, Cloud Agent checkout freshness, multi-root scope, and workstation recovery.
+
+```bash
+ror need agents
+ror new agents/project-AGENTS.md ./AGENTS.md
+ror new agents/work-order.md ./work-order.md
+ror new agents/handoff.md ./handoff.md
+ror run git/audit-agent-standards.sh --root /path/to/repos --strict
+```
+
+Templates copy one file without overwriting or filling placeholders. The last command inspects immediate child Git clones; it does not modify repositories or publish standards. Exclude intentionally out-of-scope clones using `--exclude name1,name2`. A passing audit confirms tracked, clean root instruction files, **not** project correctness or deployment readiness.
 
 ## Portable environment setup
 

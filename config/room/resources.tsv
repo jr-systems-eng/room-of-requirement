@@ -101,6 +101,7 @@ git|Dotfile|dotfiles/git/gitconfig|Portable managed Git defaults
 git|Dotfile|dotfiles/git/gitignore_global|Portable global ignore defaults
 
 agents|Guide|templates/agents/README.md|When to use the kit and how a project extends a copy
+agents|Guide|docs/setup/agent-standards-workflow.md|Full repository onboarding, agent execution, review, audit, and recovery procedure
 agents|Utility|scripts/git/audit-agent-standards.sh|Read-only audit for tracked or missing AGENTS.md across sibling Git checkouts
 agents|Template|templates/agents/project-AGENTS.md|Standing repository agent instructions, copied to the destination as AGENTS.md
 agents|Template|templates/agents/work-order.md|Bounded task assignment with stop conditions

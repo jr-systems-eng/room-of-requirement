@@ -141,6 +141,17 @@ ror dotfiles restore <backup-id>
 
 Files that existed before the install are restored from backup. Managed files that did not previously exist are removed.
 
+## Agent standards after workstation bootstrap
+
+Installing ROR does **not** create repository instructions or configure Cursor automatically. After cloning the intended projects:
+
+```bash
+ror need agents
+ror run git/audit-agent-standards.sh --root /path/to/repos
+```
+
+Review the [agent standards operating guide](agent-standards-workflow.md) for local and Cloud Agent differences, safe adoption of existing `AGENTS.md`, multi-root Cursor workspaces, work orders, and handoffs. Keep local workspace files and private settings separate from version-controlled repository rules.
+
 ## One-command opt-in bootstrap
 
 Once comfortable with the behavior, a new Unix-like machine can be initialized explicitly with:
